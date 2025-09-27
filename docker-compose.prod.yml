@@ -51,13 +51,6 @@ services:
       - ollama_data:/root/.ollama
     networks:
       - aien_network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   # API Gateway
   api-gateway:
@@ -79,58 +72,17 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
-      - PROFILER_SERVICE_URL=data-profiler:50052
-      - TRANSFER_SERVICE_URL=data-transfer:50053
       - FILE_SERVICE_URL=file-service:50054
       - ANALYSIS_SERVICE_URL=http://data-analysis-service:8080
     depends_on:
       - postgres
       - redis
       - minio
-      - data-profiler
-      - data-transfer
       - file-service
       - data-analysis-service
     networks:
       - aien_network
 
-  # Data Profiler Service
-  data-profiler:
-    build:
-      context: ./data-profiler
-      dockerfile: Dockerfile
-    container_name: aien_data_profiler
-    ports:
-      - "50052:50052"
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=aien_db
-    depends_on:
-      - postgres
-    networks:
-      - aien_network
-
-  # Data Transfer Service
-  data-transfer:
-    build:
-      context: ./data-transfer
-      dockerfile: Dockerfile
-    container_name: aien_data_transfer
-    ports:
-      - "50053:50053"
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=aien_db
-    depends_on:
-      - postgres
-    networks:
-      - aien_network
 
   # File Service
   file-service:
@@ -142,11 +94,11 @@ services:
       - "8081:8080"
       - "50054:50054"
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=aien_db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=aien_db
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin

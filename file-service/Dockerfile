@@ -30,7 +30,7 @@ RUN adduser -D -s /bin/sh appuser
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
-:
+
 # Копируем бинарный файл
 COPY --from=builder /app/main .
 
