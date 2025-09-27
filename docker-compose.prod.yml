@@ -1,0 +1,261 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: aien_postgres
+    environment:
+      POSTGRES_DB: aien_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aien_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: aien_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - aien_network
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: aien_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - aien_network
+
+  # Ollama LLM Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aien_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - aien_network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-geteway
+      dockerfile: Dockerfile
+    container_name: aien_api_gateway
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=aien_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - PROFILER_SERVICE_URL=data-profiler:50052
+      - TRANSFER_SERVICE_URL=data-transfer:50053
+      - FILE_SERVICE_URL=file-service:50054
+      - ANALYSIS_SERVICE_URL=http://data-analysis-service:8080
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - data-profiler
+      - data-transfer
+      - file-service
+      - data-analysis-service
+    networks:
+      - aien_network
+
+  # Data Profiler Service
+  data-profiler:
+    build:
+      context: ./data-profiler
+      dockerfile: Dockerfile
+    container_name: aien_data_profiler
+    ports:
+      - "50052:50052"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=aien_db
+    depends_on:
+      - postgres
+    networks:
+      - aien_network
+
+  # Data Transfer Service
+  data-transfer:
+    build:
+      context: ./data-transfer
+      dockerfile: Dockerfile
+    container_name: aien_data_transfer
+    ports:
+      - "50053:50053"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=aien_db
+    depends_on:
+      - postgres
+    networks:
+      - aien_network
+
+  # File Service
+  file-service:
+    build:
+      context: ./file-service
+      dockerfile: Dockerfile
+    container_name: aien_file_service
+    ports:
+      - "8081:8080"
+      - "50054:50054"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=aien_db
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - aien_network
+
+  # Data Analysis Service
+  data-analysis-service:
+    build:
+      context: ./data-analysis-service
+      dockerfile: Dockerfile
+    container_name: aien_data_analysis
+    ports:
+      - "8083:8080"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - MINIO_URL=http://minio:9000
+    depends_on:
+      - ollama
+      - minio
+    networks:
+      - aien_network
+
+  # Chat Service
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    container_name: aien_chat_service
+    ports:
+      - "50055:50055"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=aien_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - aien_network
+
+  # LLM Service
+  llm-service:
+    build:
+      context: ./llm-service
+      dockerfile: Dockerfile
+    container_name: aien_llm_service
+    ports:
+      - "50056:50056"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=aien_db
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      - postgres
+      - ollama
+    networks:
+      - aien_network
+
+  # Orchestration Service
+  orchestration-service:
+    build:
+      context: ./orchestration-service
+      dockerfile: Dockerfile
+    container_name: aien_orchestration
+    ports:
+      - "50057:50057"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=aien_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - aien_network
+
+  # Adminer (Database Admin)
+  adminer:
+    image: adminer
+    container_name: aien_adminer
+    ports:
+      - "8084:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    depends_on:
+      - postgres
+    networks:
+      - aien_network
+
+volumes:
+  postgres_data:
+  minio_data:
+  ollama_data:
+
+networks:
+  aien_network:
+    driver: bridge

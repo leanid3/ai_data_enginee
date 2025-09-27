@@ -1,0 +1,236 @@
+syntax = "proto3";
+
+package llm;
+
+option go_package = "./gen;gen";
+
+import "google/api/annotations.proto";
+
+// Сервис для работы с языковыми моделями
+service LLMService {
+  // Анализ структуры данных
+  rpc AnalyzeDataStructure(AnalyzeDataStructureRequest) returns (AnalyzeDataStructureResponse) {
+    option (google.api.http) = {
+      post: "/v1/llm/analyze/structure"
+      body: "*"
+    };
+  }
+
+  // Генерация DDL скриптов
+  rpc GenerateDDL(GenerateDDLRequest) returns (GenerateDDLResponse) {
+    option (google.api.http) = {
+      post: "/v1/llm/generate/ddl"
+      body: "*"
+    };
+  }
+
+  // Генерация ETL пайплайна
+  rpc GenerateETLPipeline(GenerateETLPipelineRequest) returns (GenerateETLPipelineResponse) {
+    option (google.api.http) = {
+      post: "/v1/llm/generate/etl"
+      body: "*"
+    };
+  }
+
+  // Генерация отчета по качеству данных
+  rpc GenerateDataQualityReport(GenerateDataQualityReportRequest) returns (GenerateDataQualityReportResponse) {
+    option (google.api.http) = {
+      post: "/v1/llm/generate/quality-report"
+      body: "*"
+    };
+  }
+
+  // Генерация рекомендаций по оптимизации
+  rpc GenerateOptimizationRecommendations(GenerateOptimizationRecommendationsRequest) returns (GenerateOptimizationRecommendationsResponse) {
+    option (google.api.http) = {
+      post: "/v1/llm/generate/recommendations"
+      body: "*"
+    };
+  }
+
+  // Общий чат с LLM
+  rpc ChatWithLLM(ChatWithLLMRequest) returns (ChatWithLLMResponse) {
+    option (google.api.http) = {
+      post: "/v1/llm/chat"
+      body: "*"
+    };
+  }
+
+  // Получить статус обработки запроса
+  rpc GetProcessingStatus(GetProcessingStatusRequest) returns (GetProcessingStatusResponse) {
+    option (google.api.http) = {
+      get: "/v1/llm/status/{request_id}"
+    };
+  }
+}
+
+// ========= ЗАПРОСЫ =========
+
+message AnalyzeDataStructureRequest {
+  string user_id = 1;
+  string file_path = 2;
+  string file_format = 3; // "csv", "json", "xml", "parquet"
+  int32 sample_size = 4; // количество строк для анализа
+  string analysis_type = 5; // "basic", "detailed", "schema_inference"
+  map<string, string> options = 6;
+}
+
+message GenerateDDLRequest {
+  string user_id = 1;
+  DataProfile data_profile = 2;
+  string target_database = 3; // "postgres", "clickhouse", "mysql"
+  string table_name = 4;
+  map<string, string> options = 5;
+}
+
+message GenerateETLPipelineRequest {
+  string user_id = 1;
+  DataProfile source_profile = 2;
+  DataProfile target_profile = 3;
+  string source_type = 4; // "file", "database", "api"
+  string target_type = 5; // "postgres", "clickhouse", "hdfs"
+  string pipeline_type = 6; // "batch", "streaming", "real_time"
+  map<string, string> options = 7;
+}
+
+message GenerateDataQualityReportRequest {
+  string user_id = 1;
+  DataProfile data_profile = 2;
+  string report_type = 3; // "basic", "detailed", "compliance"
+  map<string, string> quality_checks = 4;
+}
+
+message GenerateOptimizationRecommendationsRequest {
+  string user_id = 1;
+  DataProfile data_profile = 2;
+  string current_setup = 3; // описание текущей настройки
+  string optimization_goal = 4; // "performance", "storage", "cost"
+}
+
+message ChatWithLLMRequest {
+  string user_id = 1;
+  string dialog_id = 2;
+  string message = 3;
+  string context = 4; // контекст из предыдущих сообщений
+  repeated string file_ids = 5; // прикрепленные файлы
+  string model = 6; // "gpt-4", "claude", "local"
+}
+
+message GetProcessingStatusRequest {
+  string request_id = 1;
+  string user_id = 2;
+}
+
+// ========= ОТВЕТЫ =========
+
+message AnalyzeDataStructureResponse {
+  string request_id = 1;
+  string status = 2; // "processing", "completed", "failed"
+  DataProfile data_profile = 3;
+  string analysis_summary = 4;
+  string error_message = 5;
+  string created_at = 6;
+}
+
+message GenerateDDLResponse {
+  string request_id = 1;
+  string status = 2;
+  string ddl_script = 3;
+  string explanation = 4;
+  repeated string warnings = 5;
+  string error_message = 6;
+}
+
+message GenerateETLPipelineResponse {
+  string request_id = 1;
+  string status = 2;
+  string pipeline_yaml = 3; // Airflow DAG в YAML
+  string python_script = 4; // Python код для ETL
+  string explanation = 5;
+  repeated string dependencies = 6;
+  string error_message = 7;
+}
+
+message GenerateDataQualityReportResponse {
+  string request_id = 1;
+  string status = 2;
+  DataQualityReport quality_report = 3;
+  string summary = 4;
+  string error_message = 5;
+}
+
+message GenerateOptimizationRecommendationsResponse {
+  string request_id = 1;
+  string status = 2;
+  repeated OptimizationRecommendation recommendations = 3;
+  string summary = 4;
+  string error_message = 5;
+}
+
+message ChatWithLLMResponse {
+  string request_id = 1;
+  string status = 2;
+  string response = 3;
+  string model_used = 4;
+  int32 tokens_used = 5;
+  string error_message = 6;
+}
+
+message GetProcessingStatusResponse {
+  string request_id = 1;
+  string status = 2; // "processing", "completed", "failed"
+  string result = 3;
+  int32 progress_percent = 4;
+  string error_message = 5;
+  string updated_at = 6;
+}
+
+// ========= МОДЕЛИ ДАННЫХ =========
+
+message DataProfile {
+  string data_type = 1; // "timeseries", "transactional", "log", "unknown"
+  int32 total_rows = 2;
+  int32 sampled_rows = 3;
+  repeated FieldInfo fields = 4;
+  string sample_data = 5; // JSON с примерами данных
+  double data_quality_score = 6;
+  string file_path = 7;
+  string file_format = 8;
+  int64 file_size = 9;
+}
+
+message FieldInfo {
+  string name = 1;
+  string type = 2; // "string", "int", "float", "datetime", "bool", "json"
+  bool nullable = 3;
+  int32 null_count = 4;
+  string sample_value = 5;
+  double min_value = 6;
+  double max_value = 7;
+  string description = 8;
+  double uniqueness_ratio = 9;
+}
+
+message DataQualityReport {
+  double overall_score = 1;
+  repeated QualityMetric metrics = 2;
+  repeated string issues = 3;
+  repeated string recommendations = 4;
+  string generated_at = 5;
+}
+
+message QualityMetric {
+  string name = 1;
+  double score = 2;
+  string description = 3;
+  string status = 4; // "good", "warning", "critical"
+}
+
+message OptimizationRecommendation {
+  string category = 1; // "storage", "performance", "cost"
+  string title = 2;
+  string description = 3;
+  string impact = 4; // "high", "medium", "low"
+  string effort = 5; // "easy", "medium", "hard"
+  repeated string steps = 6;
+}

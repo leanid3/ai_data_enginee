@@ -1,0 +1,223 @@
+
+services:
+  # ========= ОСНОВНЫЕ МИКРОСЕРВИСЫ =========
+  
+  api-gateway:
+    build: ./api-geteway
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    depends_on:
+      - file-service
+      - chat-service
+      - llm-service
+      - orchestration-service
+    environment:
+      - FILE_SERVICE_URL=file-service:50054
+      - CHAT_SERVICE_URL=chat-service:50055
+      - LLM_SERVICE_URL=llm-service:50056
+      - ORCHESTRATION_SERVICE_URL=orchestration-service:50057
+    networks:
+      - aien-network
+
+  file-service:
+    build: ./file-service
+    ports:
+      - "50054:50054"
+      - "8081:8080"  # HTTP для multipart uploads
+    depends_on:
+      - postgres
+      - minio
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=fileuser
+      - DB_PASSWORD=filepass
+      - DB_NAME=fileservice
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=files
+    networks:
+      - aien-network
+
+  chat-service:
+    build: ./chat-service
+    ports:
+      - "50055:50055"
+    depends_on:
+      - postgres
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=chatuser
+      - DB_PASSWORD=chatpass
+      - DB_NAME=chatservice
+    networks:
+      - aien-network
+
+  llm-service:
+    build: ./llm-service
+    ports:
+      - "50056:50056"
+    depends_on:
+      - ollama
+      - postgres
+      - minio
+      - airflow-webserver
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - LLM_MODEL=llama2
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=aien_db
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=files
+      - AIRFLOW_BASE_URL=http://airflow-webserver:8080
+      - AIRFLOW_USERNAME=admin
+      - AIRFLOW_PASSWORD=admin
+    networks:
+      - aien-network
+
+  orchestration-service:
+    build: ./orchestration-service
+    ports:
+      - "50057:50057"
+    depends_on:
+      - postgres
+      - airflow-webserver
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=orchuser
+      - DB_PASSWORD=orchpass
+      - DB_NAME=orchservice
+      - AIRFLOW_BASE_URL=http://airflow-webserver:8080
+      - AIRFLOW_USERNAME=admin
+      - AIRFLOW_PASSWORD=admin
+    networks:
+      - aien-network
+
+  data-analysis-service:
+    build: ./data-analysis-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      - ollama
+      - minio
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - MINIO_URL=http://minio:9000
+      - PORT=8080
+    networks:
+      - aien-network
+
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - aien-network
+
+  # ========= ИНФРАСТРУКТУРНЫЕ СЕРВИСЫ =========
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - aien-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - aien-network
+
+  # ========= AIRFLOW =========
+
+  airflow-webserver:
+    image: apache/airflow:2.8.1
+    ports:
+      - "8082:8080"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=true
+      - AIRFLOW__WEBSERVER__AUTHENTICATE=true
+      - AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.auth.backends.basic_auth
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - aien-network
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.1
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    depends_on:
+      - postgres
+      - redis
+      - airflow-webserver
+    networks:
+      - aien-network
+
+  # ========= ЦЕЛЕВЫЕ СИСТЕМЫ ДЛЯ ТЕСТИРОВАНИЯ =========
+  
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: aien_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aien-network
+
+
+networks:
+  aien-network:
+    driver: bridge
+
+volumes:
+  ollama_data:
+  postgres_data:
+  minio_data:
+  redis_data:

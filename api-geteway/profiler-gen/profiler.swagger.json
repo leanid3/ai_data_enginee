@@ -1,0 +1,256 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "profiler.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "DataProfiler"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "profilerDatabaseSource": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "\"postgres\", \"clickhouse\""
+        },
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "database": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string",
+          "title": "пароль передаётся через credentials_ref"
+        }
+      }
+    },
+    "profilerField": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "inferredType": {
+          "type": "string",
+          "title": "\"string\", \"int\", \"float\", \"datetime\", \"bool\", \"json\""
+        },
+        "isNullable": {
+          "type": "boolean"
+        },
+        "nullCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "minValue": {
+          "type": "number",
+          "format": "double",
+          "title": "Опционально: статистика"
+        },
+        "maxValue": {
+          "type": "number",
+          "format": "double"
+        },
+        "sampleValue": {
+          "type": "string",
+          "title": "пример значения"
+        }
+      }
+    },
+    "profilerFileSource": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "title": "\"csv\", \"json\", \"xml\""
+        },
+        "url": {
+          "type": "string",
+          "title": "HTTP(S) URL или внутренний ID (например, \"upload://abc123\")"
+        }
+      }
+    },
+    "profilerProcessFileResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "title": "\"processed\", \"failed\""
+        },
+        "message": {
+          "type": "string"
+        },
+        "dataProfile": {
+          "$ref": "#/definitions/profilerUnifiedDataProfile"
+        }
+      }
+    },
+    "profilerProfileResponse": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/profilerField"
+          }
+        },
+        "sampledRows": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "dataCategory": {
+          "type": "string",
+          "title": "\"timeseries\", \"transactional\", \"log\", \"unknown\""
+        },
+        "error": {
+          "type": "string",
+          "title": "если что-то пошло не так"
+        }
+      }
+    },
+    "profilerStreamSource": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "\"kafka\""
+        },
+        "topic": {
+          "type": "string"
+        },
+        "bootstrapServers": {
+          "type": "string"
+        }
+      }
+    },
+    "profilerUnifiedDataProfile": {
+      "type": "object",
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "title": "\"timeseries\", \"transactional\", \"log\", \"unknown\""
+        },
+        "totalRows": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "sampledRows": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/profilerUnifiedField"
+          }
+        },
+        "sampleData": {
+          "type": "string",
+          "title": "JSON с примерами данных"
+        },
+        "dataQualityScore": {
+          "type": "string",
+          "title": "оценка качества данных"
+        }
+      },
+      "title": "Единый формат данных для передачи в LLM"
+    },
+    "profilerUnifiedField": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "title": "\"string\", \"int\", \"float\", \"datetime\", \"bool\", \"json\""
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "nullCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "sampleValue": {
+          "type": "string"
+        },
+        "minValue": {
+          "type": "number",
+          "format": "double"
+        },
+        "maxValue": {
+          "type": "number",
+          "format": "double"
+        },
+        "description": {
+          "type": "string",
+          "title": "описание поля от LLM"
+        }
+      }
+    },
+    "profilerUploadFileResponse": {
+      "type": "object",
+      "properties": {
+        "fileId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"uploaded\", \"failed\""
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,884 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "ateway.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "DataEngineeringAssistant"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/database/connect": {
+      "post": {
+        "summary": "Подключение к базе данных",
+        "operationId": "DataEngineeringAssistant_ConnectDatabase",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayDatabaseConnectionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayDatabaseConnectionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/files/upload/csv": {
+      "post": {
+        "summary": "Загрузка CSV файла",
+        "operationId": "DataEngineeringAssistant_UploadCSV",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayUploadFileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayUploadCSVRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/files/upload/json": {
+      "post": {
+        "summary": "Загрузка JSON файла",
+        "operationId": "DataEngineeringAssistant_UploadJSON",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayUploadFileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayUploadJSONRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/files/upload/xml": {
+      "post": {
+        "summary": "Загрузка XML файла",
+        "operationId": "DataEngineeringAssistant_UploadXML",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayUploadFileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayUploadXMLRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/pipelines": {
+      "post": {
+        "summary": "Анализ источника + генерация рекомендаций и пайплайна",
+        "operationId": "DataEngineeringAssistant_CreatePipeline",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayCreatePipelineResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayCreatePipelineRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/pipelines/{pipelineId}": {
+      "get": {
+        "summary": "Получить статус пайплайна (опционально для MVP)",
+        "operationId": "DataEngineeringAssistant_GetPipeline",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayPipelineDetails"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/transfer/cancel": {
+      "post": {
+        "summary": "Отменить перенос",
+        "operationId": "DataEngineeringAssistant_CancelTransfer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayCancelTransferResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayCancelTransferRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/transfer/clickhouse": {
+      "post": {
+        "summary": "Запуск переноса данных в ClickHouse",
+        "operationId": "DataEngineeringAssistant_StartClickHouseTransfer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayStartTransferResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayStartTransferRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/transfer/hdfs": {
+      "post": {
+        "summary": "Запуск переноса данных в HDFS",
+        "operationId": "DataEngineeringAssistant_StartHDFSTransfer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayStartTransferResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayStartTransferRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/transfer/postgres": {
+      "post": {
+        "summary": "Запуск переноса данных в PostgreSQL",
+        "operationId": "DataEngineeringAssistant_StartPostgresTransfer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayStartTransferResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/gatewayStartTransferRequest"
+            }
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    },
+    "/v1/transfer/status/{transferId}": {
+      "get": {
+        "summary": "Получить статус переноса",
+        "operationId": "DataEngineeringAssistant_GetTransferStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayGetTransferStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "transferId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DataEngineeringAssistant"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "gatewayCancelTransferRequest": {
+      "type": "object",
+      "properties": {
+        "transferId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      },
+      "title": "Запрос отмены переноса"
+    },
+    "gatewayCancelTransferResponse": {
+      "type": "object",
+      "properties": {
+        "transferId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"cancelled\", \"not_found\""
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "Ответ на отмену переноса"
+    },
+    "gatewayCreatePipelineRequest": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/gatewayDataSource"
+        },
+        "target": {
+          "$ref": "#/definitions/gatewayDataTarget"
+        },
+        "userId": {
+          "type": "string",
+          "title": "для аудита"
+        },
+        "fileId": {
+          "type": "string",
+          "title": "опционально, если используется загруженный файл"
+        }
+      }
+    },
+    "gatewayCreatePipelineResponse": {
+      "type": "object",
+      "properties": {
+        "pipelineId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"created\", \"failed\""
+        },
+        "explanation": {
+          "type": "string",
+          "title": "от LLM: \"Я вижу, что данные временные...\""
+        },
+        "ddlScript": {
+          "type": "string"
+        },
+        "dagYaml": {
+          "type": "string",
+          "title": "сгенерированный Airflow DAG"
+        },
+        "visualization": {
+          "type": "string",
+          "title": "Mermaid или JSON для UI"
+        },
+        "dataProfile": {
+          "$ref": "#/definitions/gatewayUnifiedDataProfile",
+          "title": "профиль данных в едином формате"
+        }
+      }
+    },
+    "gatewayDataSource": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "$ref": "#/definitions/gatewayFileSource"
+        },
+        "db": {
+          "$ref": "#/definitions/gatewayDatabaseSource"
+        },
+        "stream": {
+          "$ref": "#/definitions/gatewayStreamSource"
+        },
+        "connectionString": {
+          "type": "string",
+          "title": "опционально, для БД/Kafka"
+        },
+        "credentialsRef": {
+          "type": "string",
+          "title": "ссылка на секрет (Vault/K8s)"
+        }
+      }
+    },
+    "gatewayDataTarget": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "\"postgres\", \"clickhouse\", \"hdfs\""
+        },
+        "connectionString": {
+          "type": "string"
+        },
+        "tableName": {
+          "type": "string"
+        },
+        "credentialsRef": {
+          "type": "string"
+        }
+      }
+    },
+    "gatewayDatabaseConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "databaseType": {
+          "type": "string",
+          "title": "\"postgres\", \"mysql\", \"oracle\", \"sqlserver\""
+        },
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "database": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "tableName": {
+          "type": "string",
+          "title": "опционально, для анализа конкретной таблицы"
+        }
+      },
+      "title": "Подключение к базе данных"
+    },
+    "gatewayDatabaseConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "connectionId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"connected\", \"failed\""
+        },
+        "message": {
+          "type": "string"
+        },
+        "dataProfile": {
+          "$ref": "#/definitions/gatewayUnifiedDataProfile",
+          "title": "профиль данных из БД"
+        }
+      }
+    },
+    "gatewayDatabaseSource": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "\"postgres\", \"clickhouse\""
+        },
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "database": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string",
+          "title": "⚠️ в реальности — только через credentials_ref!"
+        }
+      }
+    },
+    "gatewayFileSource": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "title": "\"csv\", \"json\", \"xml\""
+        },
+        "url": {
+          "type": "string",
+          "title": "URL файла или временный upload ID"
+        }
+      }
+    },
+    "gatewayGetTransferStatusResponse": {
+      "type": "object",
+      "properties": {
+        "transferId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"pending\", \"running\", \"completed\", \"failed\", \"cancelled\""
+        },
+        "message": {
+          "type": "string"
+        },
+        "progressPercent": {
+          "type": "integer",
+          "format": "int32",
+          "title": "прогресс в процентах"
+        },
+        "processedRows": {
+          "type": "string",
+          "format": "int64",
+          "title": "количество обработанных строк"
+        },
+        "totalRows": {
+          "type": "string",
+          "format": "int64",
+          "title": "общее количество строк"
+        },
+        "processedBytes": {
+          "type": "string",
+          "format": "int64",
+          "title": "количество обработанных байт"
+        },
+        "totalBytes": {
+          "type": "string",
+          "format": "int64",
+          "title": "общий размер данных"
+        },
+        "startedAt": {
+          "type": "string",
+          "title": "время начала"
+        },
+        "completedAt": {
+          "type": "string",
+          "title": "время завершения"
+        },
+        "errorMessage": {
+          "type": "string",
+          "title": "сообщение об ошибке"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "дополнительная информация"
+        }
+      },
+      "title": "Ответ со статусом переноса"
+    },
+    "gatewayPipelineDetails": {
+      "type": "object",
+      "properties": {
+        "pipelineId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "dagYaml": {
+          "type": "string"
+        },
+        "lastRunStatus": {
+          "type": "string"
+        }
+      }
+    },
+    "gatewayStartTransferRequest": {
+      "type": "object",
+      "properties": {
+        "pipelineId": {
+          "type": "string",
+          "title": "ID созданного пайплайна"
+        },
+        "userId": {
+          "type": "string",
+          "title": "ID пользователя"
+        },
+        "targetType": {
+          "type": "string",
+          "title": "\"postgres\", \"clickhouse\", \"hdfs\""
+        },
+        "targetConnection": {
+          "type": "string",
+          "title": "строка подключения к целевой системе"
+        },
+        "targetTable": {
+          "type": "string",
+          "title": "имя таблицы/путь в целевой системе"
+        },
+        "options": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "дополнительные опции переноса"
+        }
+      },
+      "title": "Запрос на запуск переноса данных"
+    },
+    "gatewayStartTransferResponse": {
+      "type": "object",
+      "properties": {
+        "transferId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"started\", \"failed\""
+        },
+        "message": {
+          "type": "string"
+        },
+        "estimatedDuration": {
+          "type": "string",
+          "format": "int64",
+          "title": "примерная длительность в секундах"
+        },
+        "estimatedSize": {
+          "type": "string",
+          "format": "int64",
+          "title": "примерный размер данных в байтах"
+        }
+      },
+      "title": "Ответ на запуск переноса"
+    },
+    "gatewayStreamSource": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "\"kafka\""
+        },
+        "topic": {
+          "type": "string"
+        },
+        "bootstrapServers": {
+          "type": "string"
+        }
+      }
+    },
+    "gatewayUnifiedDataProfile": {
+      "type": "object",
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "title": "\"timeseries\", \"transactional\", \"log\", \"unknown\""
+        },
+        "totalRows": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "sampledRows": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/gatewayUnifiedField"
+          }
+        },
+        "sampleData": {
+          "type": "string",
+          "title": "JSON с примерами данных"
+        },
+        "dataQualityScore": {
+          "type": "string",
+          "title": "оценка качества данных"
+        }
+      },
+      "title": "Единый формат данных для передачи в LLM"
+    },
+    "gatewayUnifiedField": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "title": "\"string\", \"int\", \"float\", \"datetime\", \"bool\", \"json\""
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "nullCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "sampleValue": {
+          "type": "string"
+        },
+        "minValue": {
+          "type": "number",
+          "format": "double"
+        },
+        "maxValue": {
+          "type": "number",
+          "format": "double"
+        },
+        "description": {
+          "type": "string",
+          "title": "описание поля от LLM"
+        }
+      }
+    },
+    "gatewayUploadCSVRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "title": "Файл передается через multipart/form-data"
+        }
+      },
+      "title": "Загрузка CSV файла"
+    },
+    "gatewayUploadFileResponse": {
+      "type": "object",
+      "properties": {
+        "fileId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"uploaded\", \"failed\""
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "gatewayUploadJSONRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "title": "Файл передается через multipart/form-data"
+        }
+      },
+      "title": "Загрузка JSON файла"
+    },
+    "gatewayUploadXMLRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "title": "Файл передается через multipart/form-data"
+        }
+      },
+      "title": "Загрузка XML файла"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

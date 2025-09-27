@@ -1,0 +1,267 @@
+{
+	"info": {
+		"name": "AIEN Backend API",
+		"description": "Коллекция для тестирования AIEN Backend API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Upload CSV File",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": []
+						},
+						{
+							"key": "user_id",
+							"value": "test-user-123",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/files/upload/csv",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "files", "upload", "csv"]
+				}
+			}
+		},
+		{
+			"name": "Upload JSON File",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": []
+						},
+						{
+							"key": "user_id",
+							"value": "test-user-123",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/files/upload/json",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "files", "upload", "json"]
+				}
+			}
+		},
+		{
+			"name": "Upload XML File",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": []
+						},
+						{
+							"key": "user_id",
+							"value": "test-user-123",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/files/upload/xml",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "files", "upload", "xml"]
+				}
+			}
+		},
+		{
+			"name": "Connect Database",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"user_id\": \"test-user-123\",\n  \"database_type\": \"postgres\",\n  \"host\": \"localhost\",\n  \"port\": 5432,\n  \"database\": \"testdb\",\n  \"username\": \"testuser\",\n  \"password\": \"testpass\",\n  \"table_name\": \"users\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/database/connect",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "database", "connect"]
+				}
+			}
+		},
+		{
+			"name": "Process File",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"file_id\": \"{{file_id}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/files/process",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "files", "process"]
+				}
+			}
+		},
+		{
+			"name": "Create Pipeline - File",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"source\": {\n    \"file\": {\n      \"format\": \"csv\",\n      \"url\": \"https://example.com/data.csv\"\n    }\n  },\n  \"target\": {\n    \"type\": \"postgres\",\n    \"connection_string\": \"postgresql://user:pass@localhost:5432/db\",\n    \"table_name\": \"processed_data\",\n    \"credentials_ref\": \"vault://secrets/db\"\n  },\n  \"user_id\": \"test-user-123\",\n  \"file_id\": \"{{file_id}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/pipelines",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "pipelines"]
+				}
+			}
+		},
+		{
+			"name": "Create Pipeline - Database",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"source\": {\n    \"db\": {\n      \"type\": \"postgres\",\n      \"host\": \"localhost\",\n      \"port\": 5432,\n      \"database\": \"testdb\",\n      \"table\": \"users\",\n      \"username\": \"testuser\"\n    }\n  },\n  \"target\": {\n    \"type\": \"postgres\",\n    \"connection_string\": \"postgresql://user:pass@localhost:5432/db\",\n    \"table_name\": \"processed_data\",\n    \"credentials_ref\": \"vault://secrets/db\"\n  },\n  \"user_id\": \"test-user-123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/pipelines",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "pipelines"]
+				}
+			}
+		},
+		{
+			"name": "Create Pipeline - Stream",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"source\": {\n    \"stream\": {\n      \"type\": \"kafka\",\n      \"topic\": \"test-topic\",\n      \"bootstrap_servers\": \"localhost:9092\"\n    }\n  },\n  \"target\": {\n    \"type\": \"postgres\",\n    \"connection_string\": \"postgresql://user:pass@localhost:5432/db\",\n    \"table_name\": \"processed_data\",\n    \"credentials_ref\": \"vault://secrets/db\"\n  },\n  \"user_id\": \"test-user-123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/pipelines",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "pipelines"]
+				}
+			}
+		},
+		{
+			"name": "Get Pipeline",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/v1/pipelines/{{pipeline_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["v1", "pipelines", "{{pipeline_id}}"]
+				}
+			}
+		},
+		{
+			"name": "Ollama - Pull Model",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"llama3.2\"\n}"
+				},
+				"url": {
+					"raw": "{{ollama_url}}/api/pull",
+					"host": ["{{ollama_url}}"],
+					"path": ["api", "pull"]
+				}
+			}
+		},
+		{
+			"name": "Ollama - Test Chat",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"model\": \"llama3.2\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Создай простой SQL скрипт для создания таблицы users с полями id, name, email\"\n    }\n  ],\n  \"stream\": false\n}"
+				},
+				"url": {
+					"raw": "{{ollama_url}}/api/chat",
+					"host": ["{{ollama_url}}"],
+					"path": ["api", "chat"]
+				}
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "ollama_url",
+			"value": "http://localhost:11434"
+		},
+		{
+			"key": "file_id",
+			"value": ""
+		},
+		{
+			"key": "pipeline_id",
+			"value": "pipe-123"
+		}
+	]
+}

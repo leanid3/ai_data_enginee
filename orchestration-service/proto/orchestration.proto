@@ -1,0 +1,248 @@
+syntax = "proto3";
+
+package orchestration;
+
+option go_package = "./gen;gen";
+
+import "google/api/annotations.proto";
+
+// Сервис для оркестрации пайплайнов через Airflow
+service OrchestrationService {
+  // Создать и запустить DAG в Airflow
+  rpc CreateAndRunDAG(CreateAndRunDAGRequest) returns (CreateAndRunDAGResponse) {
+    option (google.api.http) = {
+      post: "/v1/orchestration/dags"
+      body: "*"
+    };
+  }
+
+  // Получить статус DAG
+  rpc GetDAGStatus(GetDAGStatusRequest) returns (GetDAGStatusResponse) {
+    option (google.api.http) = {
+      get: "/v1/orchestration/dags/{dag_id}/status"
+    };
+  }
+
+  // Получить логи выполнения DAG
+  rpc GetDAGLogs(GetDAGLogsRequest) returns (GetDAGLogsResponse) {
+    option (google.api.http) = {
+      get: "/v1/orchestration/dags/{dag_id}/logs"
+    };
+  }
+
+  // Остановить DAG
+  rpc StopDAG(StopDAGRequest) returns (StopDAGResponse) {
+    option (google.api.http) = {
+      post: "/v1/orchestration/dags/{dag_id}/stop"
+      body: "*"
+    };
+  }
+
+  // Получить список всех DAG
+  rpc ListDAGs(ListDAGsRequest) returns (ListDAGsResponse) {
+    option (google.api.http) = {
+      get: "/v1/orchestration/dags"
+    };
+  }
+
+  // Получить детали DAG
+  rpc GetDAGDetails(GetDAGDetailsRequest) returns (GetDAGDetailsResponse) {
+    option (google.api.http) = {
+      get: "/v1/orchestration/dags/{dag_id}"
+    };
+  }
+
+  // Зарегистрировать callback для уведомлений
+  rpc RegisterCallback(RegisterCallbackRequest) returns (RegisterCallbackResponse) {
+    option (google.api.http) = {
+      post: "/v1/orchestration/callbacks"
+      body: "*"
+    };
+  }
+
+  // Получить метрики выполнения
+  rpc GetExecutionMetrics(GetExecutionMetricsRequest) returns (GetExecutionMetricsResponse) {
+    option (google.api.http) = {
+      get: "/v1/orchestration/metrics"
+    };
+  }
+}
+
+// ========= ЗАПРОСЫ =========
+
+message CreateAndRunDAGRequest {
+  string user_id = 1;
+  string dag_id = 2;
+  string dag_yaml = 3; // YAML конфигурация DAG
+  string dag_python = 4; // Python код DAG
+  map<string, string> variables = 5; // переменные для DAG
+  string schedule_interval = 6; // cron выражение или "manual"
+  bool start_immediately = 7;
+  string description = 8;
+  map<string, string> tags = 9;
+}
+
+message GetDAGStatusRequest {
+  string dag_id = 1;
+  string user_id = 2;
+  string run_id = 3; // опционально, для конкретного запуска
+}
+
+message GetDAGLogsRequest {
+  string dag_id = 1;
+  string user_id = 2;
+  string run_id = 3;
+  string task_id = 4; // опционально, для конкретной задачи
+  int32 lines = 5; // количество строк логов
+}
+
+message StopDAGRequest {
+  string dag_id = 1;
+  string user_id = 2;
+  string run_id = 3; // опционально
+  bool force = 4; // принудительная остановка
+}
+
+message ListDAGsRequest {
+  string user_id = 1;
+  string status = 2; // "active", "paused", "failed"
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message GetDAGDetailsRequest {
+  string dag_id = 1;
+  string user_id = 2;
+}
+
+message RegisterCallbackRequest {
+  string user_id = 1;
+  string callback_url = 2;
+  string event_types = 3; // "dag_started", "dag_success", "dag_failed", "task_failed"
+  string secret_token = 4; // для аутентификации callback
+}
+
+message GetExecutionMetricsRequest {
+  string user_id = 1;
+  string time_range = 2; // "1h", "24h", "7d", "30d"
+  string dag_id = 3; // опционально, для конкретного DAG
+}
+
+// ========= ОТВЕТЫ =========
+
+message CreateAndRunDAGResponse {
+  string dag_id = 1;
+  string run_id = 2;
+  string status = 3; // "created", "started", "failed"
+  string message = 4;
+  string created_at = 5;
+  string airflow_url = 6; // ссылка на Airflow UI
+}
+
+message GetDAGStatusResponse {
+  string dag_id = 1;
+  string run_id = 2;
+  string status = 3; // "queued", "running", "success", "failed", "up_for_retry"
+  string state = 4; // детальное состояние
+  int32 progress_percent = 5;
+  string started_at = 6;
+  string finished_at = 7;
+  string duration = 8;
+  repeated TaskStatus tasks = 9;
+  string error_message = 10;
+}
+
+message GetDAGLogsResponse {
+  string dag_id = 1;
+  string run_id = 2;
+  repeated LogEntry logs = 3;
+  int32 total_lines = 4;
+  bool has_more = 5;
+}
+
+message StopDAGResponse {
+  string dag_id = 1;
+  string run_id = 2;
+  string status = 3; // "stopped", "not_found", "failed"
+  string message = 4;
+}
+
+message ListDAGsResponse {
+  repeated DAGInfo dags = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message GetDAGDetailsResponse {
+  string dag_id = 1;
+  string description = 2;
+  string schedule_interval = 3;
+  string last_run = 4;
+  string next_run = 5;
+  string status = 6;
+  repeated string tags = 7;
+  repeated TaskInfo tasks = 8;
+  string dag_yaml = 9;
+  string created_at = 10;
+}
+
+message RegisterCallbackResponse {
+  string callback_id = 1;
+  string status = 2; // "registered", "failed"
+  string message = 3;
+}
+
+message GetExecutionMetricsResponse {
+  repeated ExecutionMetric metrics = 1;
+  string time_range = 2;
+  string generated_at = 3;
+}
+
+// ========= МОДЕЛИ ДАННЫХ =========
+
+message TaskStatus {
+  string task_id = 1;
+  string status = 2;
+  string state = 3;
+  string started_at = 4;
+  string finished_at = 5;
+  string duration = 6;
+  string error_message = 7;
+}
+
+message LogEntry {
+  string timestamp = 1;
+  string level = 2; // "INFO", "WARNING", "ERROR"
+  string message = 3;
+  string task_id = 4;
+}
+
+message DAGInfo {
+  string dag_id = 1;
+  string description = 2;
+  string status = 3;
+  string last_run = 4;
+  string next_run = 5;
+  string schedule_interval = 6;
+  repeated string tags = 7;
+  int32 task_count = 8;
+  string created_at = 9;
+}
+
+message TaskInfo {
+  string task_id = 1;
+  string task_type = 2;
+  string description = 3;
+  repeated string dependencies = 4;
+  string retry_count = 5;
+  string timeout = 6;
+}
+
+message ExecutionMetric {
+  string metric_name = 1;
+  double value = 2;
+  string unit = 3;
+  string timestamp = 4;
+  map<string, string> labels = 5;
+}

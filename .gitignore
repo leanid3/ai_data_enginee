@@ -1,0 +1,133 @@
+# AIEN Backend - .gitignore
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Data directories
+data/
+logs/
+tmp/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.staging
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# MinIO data
+minio-data/
+
+# Ollama models
+ollama-data/
+
+# PostgreSQL data
+postgres-data/
+
+# Redis data
+redis-data/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+/temp/
+
+# Build artifacts
+build/
+dist/
+target/
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if any)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Test files
+test-*.json
+test-*.csv
+test-*.xml
+_data/
+
+# Analysis results
+analysis_*.json
+
+# Backup files
+*.bak
+*.backup
+
+# Certificate files
+*.pem
+*.key
+*.crt
+*.csr
+
+# Configuration overrides
+config.local.yml
+config.production.yml
+config.staging.yml
+
+# Documentation build
+docs/_build/
+site/
+
+# Coverage reports
+coverage/
+*.cover
+*.out
+
+# Profiling
+*.prof
+*.pprof
+
+# Air (Go live reload)
+tmp/
