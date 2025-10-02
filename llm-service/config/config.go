@@ -5,12 +5,13 @@ import (
 )
 
 type Config struct {
-	ServerPort string
-	OllamaURL  string
-	LLMModel   string
-	Database   DatabaseConfig
-	MinIO      MinIOConfig
-	Airflow    AirflowConfig
+	ServerPort   string
+	CustomLLMURL string
+	LLMModel     string
+	LLMAPIKey    string
+	Database     DatabaseConfig
+	MinIO        MinIOConfig
+	Airflow      AirflowConfig
 }
 
 type DatabaseConfig struct {
@@ -37,9 +38,10 @@ type AirflowConfig struct {
 
 func Load() *Config {
 	return &Config{
-		ServerPort: getEnv("LLM_SERVER_PORT", "50056"),
-		OllamaURL:  getEnv("OLLAMA_URL", "http://ollama:11434"),
-		LLMModel:   getEnv("LLM_MODEL", "llama2"),
+		ServerPort:   getEnv("LLM_SERVER_PORT", "50056"),
+		CustomLLMURL: getEnv("CUSTOM_LLM_URL", "http://localhost:8124/api/v1/process"),
+		LLMModel:     getEnv("LLM_MODEL", "openrouter/auto"),
+		LLMAPIKey:    getEnv("LLM_API_KEY", ""),
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "postgres"),
 			Port:     getEnv("DB_PORT", "5432"),

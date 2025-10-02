@@ -10,9 +10,9 @@ import (
 
 	"llm-service/config"
 	"llm-service/internal/airflow"
+	"llm-service/internal/custom_llm"
 	"llm-service/internal/database"
 	"llm-service/internal/minio"
-	"llm-service/internal/ollama"
 
 	"github.com/google/uuid"
 )
@@ -160,8 +160,8 @@ func main() {
 	// Загружаем конфигурацию
 	cfg := config.Load()
 
-	// Создаем клиент Ollama
-	ollamaClient := ollama.NewOllamaClient(cfg.OllamaURL, cfg.LLMModel)
+	// Создаем клиент кастомной LLM
+	customLLMClient := custom_llm.NewCustomLLMClient(cfg.CustomLLMURL, cfg.LLMAPIKey, cfg.LLMModel)
 
 	// Создаем подключение к базе данных
 	db, err := database.NewDatabase(
@@ -194,8 +194,8 @@ func main() {
 	)
 
 	// Проверяем подключения
-	if err := ollamaClient.CheckHealth(); err != nil {
-		log.Printf("Warning: Ollama connection failed: %v", err)
+	if err := customLLMClient.CheckHealth(); err != nil {
+		log.Printf("Warning: Custom LLM connection failed: %v", err)
 		log.Println("Continuing with mock responses...")
 	}
 
@@ -352,10 +352,10 @@ func main() {
 				req.DataProfile.FileFormat,
 				analysisResult.DataProfile)
 
-			ddlScript, err := ollamaClient.GenerateResponse(prompt)
+			ddlScript, err := customLLMClient.GenerateResponse(prompt)
 			if err != nil {
-				// Fallback к статическому DDL если Ollama недоступен
-				log.Printf("Ollama error, using fallback DDL: %v", err)
+				// Fallback к статическому DDL если кастомная LLM недоступна
+				log.Printf("Custom LLM error, using fallback DDL: %v", err)
 				ddlScript = fmt.Sprintf(`-- Сгенерированный DDL для таблицы %s
 -- Основан на анализе данных: %s
 -- Качество данных: %.2f%%

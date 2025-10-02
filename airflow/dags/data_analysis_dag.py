@@ -117,29 +117,38 @@ def generate_llm_analysis(**context):
     4. Возможностям аналитики
     """
     
-    # Отправка запроса к Ollama
-    ollama_url = os.getenv('OLLAMA_URL', 'http://ollama:11434')
+    # Отправка запроса к кастомной LLM
+    custom_llm_url = os.getenv('CUSTOM_LLM_URL', 'http://localhost:8124/api/v1/process')
+    custom_llm_key = os.getenv('CUSTOM_LLM_API_KEY', '')
     
     try:
+        headers = {
+            "Content-Type": "application/json"
+        }
+        if custom_llm_key:
+            headers["Authorization"] = f"Bearer {custom_llm_key}"
+            
         response = requests.post(
-            f"{ollama_url}/api/generate",
+            custom_llm_url,
             json={
-                "model": "llama2",
-                "prompt": llm_prompt,
-                "stream": False
+                "user_query": llm_prompt,
+                "source_config": {"type": "text"},
+                "target_config": {"type": "analysis"},
+                "operation_type": "data_analysis"
             },
+            headers=headers,
             timeout=30
         )
         
         if response.status_code == 200:
             llm_response = response.json()
-            llm_analysis = llm_response.get('response', 'Анализ недоступен')
+            llm_analysis = llm_response.get('message', 'Анализ недоступен')
         else:
-            llm_analysis = "Ошибка подключения к LLM"
+            llm_analysis = "Ошибка подключения к кастомной LLM"
             
     except Exception as e:
-        print(f"Ошибка при обращении к LLM: {e}")
-        llm_analysis = "LLM недоступен"
+        print(f"Ошибка при обращении к кастомной LLM: {e}")
+        llm_analysis = "Кастомная LLM недоступна"
     
     # Объединение результатов
     final_analysis = {

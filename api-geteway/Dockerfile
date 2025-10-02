@@ -9,8 +9,8 @@ RUN go mod download
 # Копируем исходный код
 COPY . .
 
-# Собираем приложение
-RUN go build -o main ./cmd/http_main.go
+# Обновляем зависимости и собираем приложение
+RUN go mod tidy && go build -o main ./cmd/http_main.go
 
 # Финальный образ
 FROM alpine:latest

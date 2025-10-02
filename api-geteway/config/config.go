@@ -7,12 +7,14 @@ import (
 type Config struct {
 	LLMBaseURL string
 	LLMAPIKey  string
+	LLMModel   string
 }
 
 func LoadConfig() *Config {
 	return &Config{
-		LLMBaseURL: getEnv("LLM_BASE_URL", "http://ollama:11434/api/chat"),
-		LLMAPIKey:  getEnv("LLM_API_KEY", ""), // Ollama не требует API ключ
+		LLMBaseURL: getEnv("LLM_BASE_URL", "http://localhost:8124/api/v1/process"),
+		LLMAPIKey:  getEnv("LLM_API_KEY", ""), // API ключ для кастомной LLM
+		LLMModel:   getEnv("LLM_MODEL", "openrouter/auto"),
 	}
 }
 

@@ -16,10 +16,10 @@ type LLMClient struct {
 }
 
 type LLMRequest struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	MaxTokens   int       `json:"max_tokens"`
-	Temperature float64   `json:"temperature"`
+	UserQuery     string                 `json:"user_query"`
+	SourceConfig  map[string]interface{} `json:"source_config"`
+	TargetConfig  map[string]interface{} `json:"target_config"`
+	OperationType string                 `json:"operation_type"`
 }
 
 type Message struct {
@@ -28,8 +28,10 @@ type Message struct {
 }
 
 type LLMResponse struct {
-	Choices []Choice  `json:"choices"`
-	Error   *LLMError `json:"error,omitempty"`
+	PipelineID string    `json:"pipeline_id"`
+	Status     string    `json:"status"`
+	Message    string    `json:"message"`
+	Error      *LLMError `json:"error,omitempty"`
 }
 
 type Choice struct {
@@ -90,13 +92,27 @@ func NewLLMClient(baseURL, apiKey string) *LLMClient {
 }
 
 func (c *LLMClient) GenerateDDL(dataProfile DataProfile, target DataTarget) (string, error) {
-	// Формируем промпт для LLM
-	prompt := c.buildPrompt(dataProfile, target)
+	// Формируем запрос для кастомной LLM
+	userQuery := c.buildPrompt(dataProfile, target)
+	
+	request := LLMRequest{
+		UserQuery: userQuery,
+		SourceConfig: map[string]interface{}{
+			"type":      dataProfile.DataType,
+			"file_path": "data.csv",
+		},
+		TargetConfig: map[string]interface{}{
+			"type":             target.Type,
+			"table_name":       target.TableName,
+			"connection_string": target.ConnectionString,
+		},
+		OperationType: "ddl_generation",
+	}
 
-	// Отправляем запрос к LLM
-	response, err := c.callLLM(prompt)
+	// Отправляем запрос к кастомной LLM
+	response, err := c.callCustomLLM(request)
 	if err != nil {
-		return "", fmt.Errorf("failed to call LLM: %v", err)
+		return "", fmt.Errorf("failed to call custom LLM: %v", err)
 	}
 
 	return response, nil
@@ -129,23 +145,7 @@ func (c *LLMClient) buildPrompt(dataProfile DataProfile, target DataTarget) stri
 	return prompt
 }
 
-func (c *LLMClient) callLLM(prompt string) (string, error) {
-	request := LLMRequest{
-		Model: "llama3.2", // Используем Llama 3.2 для Ollama
-		Messages: []Message{
-			{
-				Role:    "system",
-				Content: "Ты - эксперт по SQL и проектированию баз данных. Отвечай только SQL кодом.",
-			},
-			{
-				Role:    "user",
-				Content: prompt,
-			},
-		},
-		MaxTokens:   2000,
-		Temperature: 0.1,
-	}
-
+func (c *LLMClient) callCustomLLM(request LLMRequest) (string, error) {
 	jsonData, err := json.Marshal(request)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal request: %v", err)
@@ -173,7 +173,7 @@ func (c *LLMClient) callLLM(prompt string) (string, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("LLM API error: %s", string(body))
+		return "", fmt.Errorf("Custom LLM API error: %s", string(body))
 	}
 
 	var llmResp LLMResponse
@@ -182,14 +182,14 @@ func (c *LLMClient) callLLM(prompt string) (string, error) {
 	}
 
 	if llmResp.Error != nil {
-		return "", fmt.Errorf("LLM error: %s", llmResp.Error.Message)
+		return "", fmt.Errorf("Custom LLM error: %s", llmResp.Error.Message)
 	}
 
-	if len(llmResp.Choices) == 0 {
-		return "", fmt.Errorf("no response from LLM")
+	if llmResp.Status != "success" {
+		return "", fmt.Errorf("Custom LLM returned error status: %s", llmResp.Message)
 	}
 
-	return llmResp.Choices[0].Message.Content, nil
+	return llmResp.Message, nil
 }
 
 // Мок-реализация для тестирования без реального LLM

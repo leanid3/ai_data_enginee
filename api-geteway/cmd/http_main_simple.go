@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,17 +9,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	fileGen "api-gateway/file-gen"
 )
 
 type APIGateway struct {
 	FileServiceURL     string
 	AnalysisServiceURL string
 	Client             *http.Client
-	FileClient         fileGen.FileServiceClient
 }
 
 type FileUploadRequest struct {
@@ -51,27 +45,12 @@ type AnalysisResponse struct {
 }
 
 func NewAPIGateway() *APIGateway {
-	// Создаем gRPC клиент для File Service
-	fileConn, err := grpc.Dial("file-service:50054",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(1024*1024*1024), // 1GB
-			grpc.MaxCallSendMsgSize(1024*1024*1024), // 1GB
-		),
-	)
-	if err != nil {
-		log.Fatalf("Failed to connect to File Service: %v", err)
-	}
-	
-	fileClient := fileGen.NewFileServiceClient(fileConn)
-
 	return &APIGateway{
-		FileServiceURL:     "http://file-service:8080", // Для HTTP запросов
+		FileServiceURL:     "http://file-service:50054",
 		AnalysisServiceURL: "http://data-analysis-service:8080",
 		Client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		FileClient: fileClient,
 	}
 }
 
@@ -107,8 +86,16 @@ func (gw *APIGateway) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Определяем формат файла (для gRPC не используется, но оставляем для совместимости)
-	_ = "csv" // format не используется в gRPC версии
+	// Определяем формат файла
+	format := "csv"
+	if handler.Filename != "" {
+		ext := handler.Filename[len(handler.Filename)-4:]
+		if ext == ".csv" {
+			format = "csv"
+		} else if ext == ".json" {
+			format = "json"
+		}
+	}
 
 	// Создаем multipart form для отправки в File Service
 	var b bytes.Buffer
@@ -128,40 +115,27 @@ func (gw *APIGateway) UploadFile(w http.ResponseWriter, r *http.Request) {
 	
 	writer.Close()
 
-	// Отправляем запрос в File Service через gRPC
-	ctx := context.Background()
-	req := &fileGen.UploadFileRequest{
-		UserId:      "test-user-test", // TODO: получить из запроса
-		Filename:    handler.Filename,
-		ContentType: handler.Header.Get("Content-Type"),
-		FileSize:    int64(len(fileBytes)),
-	}
-	
-	resp, err := gw.FileClient.UploadFile(ctx, req)
+	// Отправляем запрос в File Service
+	resp, err := gw.Client.Post(
+		fmt.Sprintf("%s/v1/files/upload/%s", gw.FileServiceURL, format),
+		writer.FormDataContentType(),
+		&b,
+	)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("File service error: %v", err), http.StatusInternalServerError)
 		return
 	}
+	defer resp.Body.Close()
 
-	// Конвертируем gRPC ответ в JSON
-	response := map[string]interface{}{
-		"file_id":      resp.FileId,
-		"status":       resp.Status,
-		"message":      resp.Message,
-		"storage_path": resp.StoragePath,
-		"file_size":    resp.FileSize,
-		"created_at":   resp.CreatedAt,
-	}
-
-	jsonResponse, err := json.Marshal(response)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		http.Error(w, "Failed to read response", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonResponse)
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
 }
 
 func (gw *APIGateway) StartAnalysis(w http.ResponseWriter, r *http.Request) {

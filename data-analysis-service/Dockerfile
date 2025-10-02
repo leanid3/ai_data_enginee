@@ -11,8 +11,8 @@ RUN go mod download
 # Копируем исходный код
 COPY . .
 
-# Собираем приложение
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/main.go
+# Обновляем зависимости и собираем приложение
+RUN go mod tidy && CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/main.go
 
 # Финальный образ
 FROM alpine:latest

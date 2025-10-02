@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -14,12 +15,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	_ "github.com/lib/pq"
 )
 
 type AnalysisService struct {
-	ollamaURL string
-	minioURL  string
+	customLLMURL string
+	customLLMKey string
+	minioURL     string
+	minioClient  *minio.Client
 }
 
 type AnalysisRequest struct {
@@ -47,10 +52,21 @@ type OllamaResponse struct {
 	Done     bool   `json:"done"`
 }
 
-func NewAnalysisService(ollamaURL, minioURL string) *AnalysisService {
+func NewAnalysisService(customLLMURL, customLLMKey, minioURL string) *AnalysisService {
+	// Создаем MinIO клиент
+	minioClient, err := minio.New("minio:9000", &minio.Options{
+		Creds:  credentials.NewStaticV4("minioadmin", "minioadmin", ""),
+		Secure: false,
+	})
+	if err != nil {
+		log.Printf("Ошибка создания MinIO клиента: %v", err)
+	}
+
 	return &AnalysisService{
-		ollamaURL: ollamaURL,
-		minioURL:  minioURL,
+		customLLMURL: customLLMURL,
+		customLLMKey: customLLMKey,
+		minioURL:     minioURL,
+		minioClient:  minioClient,
 	}
 }
 
@@ -127,6 +143,10 @@ func (s *AnalysisService) performAnalysis(analysisID string, req AnalysisRequest
 
 	// 1. Получение файла из MinIO
 	fileContent := s.getFileFromMinIO(req.FilePath)
+	if fileContent == "" {
+		log.Printf("Не удалось получить файл из MinIO, анализ прерван")
+		return
+	}
 
 	// 2. Анализ структуры данных
 	dataProfile := s.analyzeDataStructure(fileContent)
@@ -156,41 +176,29 @@ func (s *AnalysisService) performAnalysis(analysisID string, req AnalysisRequest
 func (s *AnalysisService) getFileFromMinIO(filePath string) string {
 	log.Printf("Получаем файл из MinIO: %s", filePath)
 
-	// Используем MinIO API для получения файла
-	// MinIO API endpoint: http://minio:9000/minio/files/bucket/object
-	url := fmt.Sprintf("http://minio:9000/minio/files/%s", filePath)
-
-	// Создаем HTTP клиент с увеличенным таймаутом для больших файлов
-	client := &http.Client{
-		Timeout: 5 * time.Minute, // 5 минут для больших файлов
+	if s.minioClient == nil {
+		log.Printf("MinIO клиент не инициализирован")
+		return ""
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	// File Service использует bucket "files"
+	bucketName := "files"
+	objectName := filePath // Используем полный путь как object name
+
+	// Получаем объект из MinIO
+	ctx := context.Background()
+	object, err := s.minioClient.GetObject(ctx, bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
-		log.Printf("Ошибка создания запроса к MinIO: %v", err)
-		return s.getFallbackData()
+		log.Printf("Ошибка получения объекта из MinIO: %v", err)
+		return ""
 	}
-
-	// Добавляем заголовки для MinIO
-	req.Header.Set("User-Agent", "data-analysis-service")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Ошибка получения файла из MinIO: %v", err)
-		return s.getFallbackData()
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Ошибка HTTP при получении файла: %d", resp.StatusCode)
-		return s.getFallbackData()
-	}
+	defer object.Close()
 
 	// Читаем файл (ограничиваем размер для анализа)
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024)) // 10MB максимум
+	body, err := io.ReadAll(io.LimitReader(object, 10*1024*1024)) // 10MB максимум
 	if err != nil {
 		log.Printf("Ошибка чтения файла: %v", err)
-		return s.getFallbackData()
+		return ""
 	}
 
 	log.Printf("Файл успешно получен из MinIO, размер: %d байт", len(body))
@@ -428,20 +436,21 @@ func (s *AnalysisService) generateDDLWithLLM(dataProfile map[string]interface{},
 Верни ТОЛЬКО SQL код без дополнительных объяснений.
 `, strings.Join(dataTypes, ", "), fullFileContent)
 
-	// Отправляем запрос к Ollama с увеличенным таймаутом
-	ollamaReq := OllamaRequest{
-		Model:  "llama3.2:latest",
-		Prompt: prompt,
-		Stream: false,
-		Options: map[string]interface{}{
-			"temperature": 0.1, // Низкая температура для более точного DDL
-			"top_p":       0.9,
+	// Отправляем запрос к кастомной LLM с увеличенным таймаутом
+	customLLMReq := map[string]interface{}{
+		"user_query": prompt,
+		"source_config": map[string]interface{}{
+			"type": "text",
 		},
+		"target_config": map[string]interface{}{
+			"type": "ddl_generation",
+		},
+		"operation_type": "ddl_generation",
 	}
 
-	jsonData, err := json.Marshal(ollamaReq)
+	jsonData, err := json.Marshal(customLLMReq)
 	if err != nil {
-		log.Printf("Ошибка сериализации запроса к LLM для DDL: %v", err)
+		log.Printf("Ошибка сериализации запроса к кастомной LLM для DDL: %v", err)
 		return s.generateFallbackDDL(dataProfile)
 	}
 
@@ -451,9 +460,20 @@ func (s *AnalysisService) generateDDLWithLLM(dataProfile map[string]interface{},
 	}
 
 	// Отправка запроса
-	resp, err := client.Post(s.ollamaURL+"/api/generate", "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", s.customLLMURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Printf("Ошибка запроса к LLM для DDL: %v", err)
+		log.Printf("Ошибка создания запроса к кастомной LLM для DDL: %v", err)
+		return s.generateFallbackDDL(dataProfile)
+	}
+	
+	req.Header.Set("Content-Type", "application/json")
+	if s.customLLMKey != "" {
+		req.Header.Set("Authorization", "Bearer "+s.customLLMKey)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Ошибка запроса к кастомной LLM для DDL: %v", err)
 		return s.generateFallbackDDL(dataProfile)
 	}
 	defer resp.Body.Close()
@@ -461,21 +481,25 @@ func (s *AnalysisService) generateDDLWithLLM(dataProfile map[string]interface{},
 	// Чтение ответа
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Ошибка чтения ответа от LLM для DDL: %v", err)
+		log.Printf("Ошибка чтения ответа от кастомной LLM для DDL: %v", err)
 		return s.generateFallbackDDL(dataProfile)
 	}
 
 	// Парсинг ответа
-	var ollamaResp OllamaResponse
-	if err := json.Unmarshal(body, &ollamaResp); err != nil {
-		log.Printf("Ошибка парсинга ответа от LLM для DDL: %v", err)
+	var customLLMResp map[string]interface{}
+	if err := json.Unmarshal(body, &customLLMResp); err != nil {
+		log.Printf("Ошибка парсинга ответа от кастомной LLM для DDL: %v", err)
 		return s.generateFallbackDDL(dataProfile)
 	}
 
-	log.Printf("DDL скрипт сгенерирован LLM")
+	log.Printf("DDL скрипт сгенерирован кастомной LLM")
 
-	// Очищаем ответ от markdown разметки
-	ddlScript := ollamaResp.Response
+	// Получаем ответ из кастомной LLM
+	ddlScript, ok := customLLMResp["message"].(string)
+	if !ok {
+		log.Printf("Неожиданный формат ответа от кастомной LLM")
+		return s.generateFallbackDDL(dataProfile)
+	}
 	ddlScript = strings.TrimPrefix(ddlScript, "```sql")
 	ddlScript = strings.TrimPrefix(ddlScript, "```")
 	ddlScript = strings.TrimSuffix(ddlScript, "```")
@@ -665,42 +689,66 @@ func (s *AnalysisService) analyzeWithLLM(dataProfile map[string]interface{}, ful
 		dataProfile["data_types"],
 		fullFileContent)
 
-	// Отправка запроса к Ollama
-	ollamaReq := OllamaRequest{
-		Model:  "llama3.2:latest",
-		Prompt: prompt,
-		Stream: false,
+	// Отправка запроса к кастомной LLM
+	customLLMReq := map[string]interface{}{
+		"user_query": prompt,
+		"source_config": map[string]interface{}{
+			"type": "text",
+		},
+		"target_config": map[string]interface{}{
+			"type": "analysis",
+		},
+		"operation_type": "data_analysis",
 	}
 
-	jsonData, err := json.Marshal(ollamaReq)
+	jsonData, err := json.Marshal(customLLMReq)
 	if err != nil {
-		log.Printf("Ошибка сериализации запроса к LLM: %v", err)
-		return "Ошибка анализа с LLM"
+		log.Printf("Ошибка сериализации запроса к кастомной LLM: %v", err)
+		return "Ошибка анализа с кастомной LLM"
 	}
 
 	// Отправка запроса
-	resp, err := http.Post(s.ollamaURL+"/api/generate", "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", s.customLLMURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Printf("Ошибка запроса к LLM: %v", err)
-		return "LLM недоступен"
+		log.Printf("Ошибка создания запроса к кастомной LLM: %v", err)
+		return "Кастомная LLM недоступна"
+	}
+	
+	req.Header.Set("Content-Type", "application/json")
+	if s.customLLMKey != "" {
+		req.Header.Set("Authorization", "Bearer "+s.customLLMKey)
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Ошибка запроса к кастомной LLM: %v", err)
+		return "Кастомная LLM недоступна"
 	}
 	defer resp.Body.Close()
 
 	// Чтение ответа
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Ошибка чтения ответа от LLM: %v", err)
-		return "Ошибка чтения ответа от LLM"
+		log.Printf("Ошибка чтения ответа от кастомной LLM: %v", err)
+		return "Ошибка чтения ответа от кастомной LLM"
 	}
 
 	// Парсинг ответа
-	var ollamaResp OllamaResponse
-	if err := json.Unmarshal(body, &ollamaResp); err != nil {
-		log.Printf("Ошибка парсинга ответа от LLM: %v", err)
-		return "Ошибка парсинга ответа от LLM"
+	var customLLMResp map[string]interface{}
+	if err := json.Unmarshal(body, &customLLMResp); err != nil {
+		log.Printf("Ошибка парсинга ответа от кастомной LLM: %v", err)
+		return "Ошибка парсинга ответа от кастомной LLM"
 	}
 
-	return ollamaResp.Response
+	// Получаем ответ из кастомной LLM
+	response, ok := customLLMResp["message"].(string)
+	if !ok {
+		log.Printf("Неожиданный формат ответа от кастомной LLM")
+		return "Неожиданный формат ответа от кастомной LLM"
+	}
+
+	return response
 }
 
 // generateRecommendations генерирует рекомендации на основе LLM анализа
@@ -1089,9 +1137,14 @@ func containsAny(str string, substrings []string) bool {
 
 func main() {
 	// Получение URL сервисов из переменных окружения
-	ollamaURL := os.Getenv("OLLAMA_URL")
-	if ollamaURL == "" {
-		ollamaURL = "http://ollama:11434"
+	customLLMURL := os.Getenv("CUSTOM_LLM_URL")
+	if customLLMURL == "" {
+		customLLMURL = "http://localhost:8124/api/v1/process"
+	}
+
+	customLLMKey := os.Getenv("CUSTOM_LLM_API_KEY")
+	if customLLMKey == "" {
+		customLLMKey = ""
 	}
 
 	minioURL := os.Getenv("MINIO_URL")
@@ -1100,7 +1153,7 @@ func main() {
 	}
 
 	// Создание сервиса анализа
-	analysisService := NewAnalysisService(ollamaURL, minioURL)
+	analysisService := NewAnalysisService(customLLMURL, customLLMKey, minioURL)
 
 	// Настройка Gin
 	if os.Getenv("GIN_MODE") == "release" {
