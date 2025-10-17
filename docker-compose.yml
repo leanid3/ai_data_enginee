@@ -11,8 +11,33 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./ai-data-engineer-backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - aien_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ClickHouse Database
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: aien_clickhouse
+    environment:
+      CLICKHOUSE_DB: aien_db
+    ports:
+      - "9002:9000"
+      - "8123:8123"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    networks:
+      - aien_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis Cache
   redis:
@@ -22,6 +47,11 @@ services:
       - "6379:6379"
     networks:
       - aien_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # MinIO Object Storage
   minio:
@@ -38,6 +68,11 @@ services:
     command: server /data --console-address ":9001"
     networks:
       - aien_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Custom LLM Service
   custom-llm:
@@ -50,104 +85,102 @@ services:
     environment:
       - PORT=8124
       - DEBUG=false
-    networks:
-      - aien_network
-
-
-  # API Gateway
-  api-gateway:
-    build:
-      context: ./api-geteway
-      dockerfile: Dockerfile
-    container_name: aien_api_gateway
-    ports:
-      - "8080:8080"
-      - "50051:50051"
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=aien_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - FILE_SERVICE_URL=file-service:50054
-      - ANALYSIS_SERVICE_URL=http://data-analysis-service:8080
-      - LLM_BASE_URL=http://custom-llm:8124/api/v1/process
-      - LLM_API_KEY=
-      - LLM_MODEL=openrouter/auto
-    depends_on:
-      - postgres
-      - redis
-      - minio
-      - custom-llm
-      - file-service
-      - data-analysis-service
-    networks:
-      - aien_network
-
-
-  # File Service
-  file-service:
-    build:
-      context: ./file-service
-      dockerfile: Dockerfile
-    container_name: aien_file_service
-    ports:
-      - "8081:8080"
-      - "50054:50054"
-    environment:
+      - OPENROUTER_API_KEY=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
+      - OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+      - DEFAULT_MODEL=deepseek/deepseek-chat-v3.1:free
+      - SITE_URL=http://localhost:8124
+      - SITE_NAME=AI Data Engineer
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=aien_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - aien_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8124/api/v1/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Data Analysis Service
-  data-analysis-service:
+  # AI Data Engineer Backend
+  ai-backend:
     build:
-      context: ./data-analysis-service
+      context: ./ai-data-engineer-backend
       dockerfile: Dockerfile
-    container_name: aien_data_analysis
+    container_name: aien_backend
     ports:
-      - "8083:8080"
+      - "8080:8080"
     environment:
-      - CUSTOM_LLM_URL=http://custom-llm:8124/api/v1/process
-      - CUSTOM_LLM_API_KEY=
-      - MINIO_URL=http://minio:9000
+      - CONFIG_PATH=configs/config.yaml
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=aien_db
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+      - CLICKHOUSE_DB=aien_db
+      - LLM_BASE_URL=http://custom-llm:8124/api/v1/process
+      - LLM_API_KEY=
+      - LLM_MODEL=openrouter/auto
+      - STORAGE_TYPE=minio
+      - STORAGE_ENDPOINT=minio:9000
+      - STORAGE_ACCESS_KEY=minioadmin
+      - STORAGE_SECRET_KEY=minioadmin
+      - STORAGE_BUCKET=files
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
     depends_on:
-      - minio
-      - custom-llm
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      custom-llm:
+        condition: service_healthy
     networks:
       - aien_network
-
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Frontend
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: aien_frontend
     ports:
       - "3001:80"
-    container_name: aien_frontend
-    restart: unless-stopped
+    depends_on:
+      - ai-backend
     networks:
       - aien_network
 
 
 volumes:
   postgres_data:
+  clickhouse_data:
   minio_data:
 
 networks:

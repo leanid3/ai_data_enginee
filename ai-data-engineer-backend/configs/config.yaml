@@ -1,0 +1,51 @@
+server:
+  port: "8080"
+  read_timeout: "30s"
+  write_timeout: "30s"
+  idle_timeout: "120s"
+
+database:
+  postgresql:
+    host: "postgres"
+    port: "5432"
+    user: "postgres"
+    password: "postgres"
+    dbname: "aien_db"
+    sslmode: "disable"
+    max_open: 25
+    max_idle: 5
+  
+  clickhouse:
+    host: "clickhouse"
+    port: "9000"
+    user: "default"
+    password: ""
+    dbname: "aien_db"
+    secure: false
+
+llm:
+  base_url: "http://custom-llm:8124/api/v1/process"
+  api_key: ""
+  model: "openrouter/auto"
+  timeout: "30s"
+  max_retries: 3
+
+storage:
+  type: "minio"
+  endpoint: "minio:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "files"
+  use_ssl: false
+
+airflow:
+  dags_path: "/opt/airflow/dags"
+  base_url: "http://airflow:8080"
+  username: "admin"
+  password: "admin"
+
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+

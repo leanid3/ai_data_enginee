@@ -8,21 +8,20 @@ AIED Backend - это система для анализа данных с ис�
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │────│   API Gateway   │────│  Custom LLM    │
+│   Frontend      │────│  AI Backend     │────│  Custom LLM    │
 │   (Port 3001)   │    │   (Port 8080)   │    │  (Port 8124)   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  File Service  │────│ Data Analysis  │────│   PostgreSQL   │
-│  (Port 8081)   │    │   Service       │    │   (Port 5432)   │
-└─────────────────┘    │  (Port 8083)   │    └─────────────────┘
-                       └─────────────────┘
+                                │                       │
+                                │                       │
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   PostgreSQL    │    │     Redis       │
+                       │   (Port 5432)   │    │   (Port 6379)   │
+                       └─────────────────┘    └─────────────────┘
                                 │
-                       ┌─────────────────┐
-                       │     MinIO       │
-                       │   (Port 9000)   │
-                       └─────────────────┘
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │     MinIO       │    │   ClickHouse    │
+                       │   (Port 9000)   │    │   (Port 9000)   │
+                       └─────────────────┘    └─────────────────┘
 ```
 
 ## Компоненты системы
@@ -30,24 +29,20 @@ AIED Backend - это система для анализа данных с ис�
 ### Frontend (React)
 - **Порт:** 3001
 - **Функции:** Загрузка файлов, отображение результатов анализа
-- **API:** Взаимодействует с API Gateway
+- **API:** Взаимодействует с AI Backend
 
-### API Gateway (Go)
+### AI Data Engineer Backend (Go)
 - **Порт:** 8080
-- **Функции:** Маршрутизация запросов, координация сервисов
+- **Функции:** Основной API сервис, обработка данных, интеграция с LLM
 - **Endpoints:**
   - `POST /api/v1/files/upload` - Загрузка файлов
   - `POST /api/v1/analysis/start` - Запуск анализа
   - `GET /api/v1/analysis/status/{id}` - Статус анализа
+  - `GET /api/v1/health` - Проверка здоровья сервиса
 
-### File Service (Go)
-- **Порт:** 8081
-- **Функции:** Загрузка и хранение файлов в MinIO
-- **API:** gRPC сервис для работы с файлами
-
-### Data Analysis Service (Go)
-- **Порт:** 8083
-- **Функции:** Анализ данных, интеграция с LLM
+### Custom LLM Service (Python)
+- **Порт:** 8124
+- **Функции:** Интеграция с внешними LLM API, обработка текстовых запросов
 - **Возможности:**
   - Анализ структуры данных
   - Оценка качества данных
@@ -81,9 +76,37 @@ git clone <repository-url>
 cd AIED_baceknd
 
 # Запуск всех сервисов
-docker compose up -d
+docker-compose up -d
 
 # Проверка статуса
+docker-compose ps
+
+# Тестирование интеграции
+./test_integration.sh
+```
+
+### Доступные сервисы
+
+После запуска система будет доступна по следующим адресам:
+
+- **Frontend**: http://localhost:3001
+- **AI Backend API**: http://localhost:8080
+- **LLM Service**: http://localhost:8124
+- **MinIO Console**: http://localhost:9001
+- **ClickHouse**: http://localhost:8123 (HTTP), http://localhost:9002 (Native)
+
+### Проверка здоровья сервисов
+
+```bash
+# Проверка статуса всех контейнеров
+docker-compose ps
+
+# Просмотр логов
+docker-compose logs -f
+
+# Проверка конкретного сервиса
+curl http://localhost:8080/api/v1/health
+curl http://localhost:8124/api/v1/health
 docker compose ps
 
 # Тестирование системы

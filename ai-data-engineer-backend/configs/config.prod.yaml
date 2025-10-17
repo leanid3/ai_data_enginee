@@ -1,0 +1,51 @@
+server:
+  port: "8080"
+  read_timeout: "60s"
+  write_timeout: "60s"
+  idle_timeout: "300s"
+
+database:
+  postgresql:
+    host: "${POSTGRES_HOST:postgres}"
+    port: "${POSTGRES_PORT:5432}"
+    user: "${POSTGRES_USER:postgres}"
+    password: "${POSTGRES_PASSWORD:postgres}"
+    dbname: "${POSTGRES_DB:aien_db}"
+    sslmode: "${POSTGRES_SSLMODE:disable}"
+    max_open: 50
+    max_idle: 10
+  
+  clickhouse:
+    host: "${CLICKHOUSE_HOST:clickhouse}"
+    port: "${CLICKHOUSE_PORT:9000}"
+    user: "${CLICKHOUSE_USER:default}"
+    password: "${CLICKHOUSE_PASSWORD:}"
+    dbname: "${CLICKHOUSE_DB:aien_db}"
+    secure: false
+
+llm:
+  base_url: "${LLM_BASE_URL:http://custom-llm:8124/api/v1/process}"
+  api_key: "${LLM_API_KEY:}"
+  model: "${LLM_MODEL:openrouter/auto}"
+  timeout: "60s"
+  max_retries: 5
+
+storage:
+  type: "${STORAGE_TYPE:minio}"
+  endpoint: "${STORAGE_ENDPOINT:minio:9000}"
+  access_key: "${STORAGE_ACCESS_KEY:minioadmin}"
+  secret_key: "${STORAGE_SECRET_KEY:minioadmin}"
+  bucket: "${STORAGE_BUCKET:files}"
+  use_ssl: false
+
+airflow:
+  dags_path: "${AIRFLOW_DAGS_PATH:/opt/airflow/dags}"
+  base_url: "${AIRFLOW_BASE_URL:http://airflow:8080}"
+  username: "${AIRFLOW_USERNAME:admin}"
+  password: "${AIRFLOW_PASSWORD:admin}"
+
+logging:
+  level: "${LOG_LEVEL:info}"
+  format: "json"
+  output: "stdout"
+
