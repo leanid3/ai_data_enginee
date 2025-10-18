@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { validatePipelineData } from '../utils/validators';
+import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
 
 // Начальное состояние
 const initialState = {
@@ -42,7 +41,7 @@ const pipelineReducer = (state, action) => {
     case ACTIONS.NEXT_STEP:
       return {
         ...state,
-        currentStep: Math.min(state.currentStep + 1, 5), // Максимум 6 шагов (0-5)
+        currentStep: Math.min(state.currentStep + 1, 5),
         errors: {},
       };
 
@@ -70,21 +69,23 @@ const pipelineReducer = (state, action) => {
       };
 
     case ACTIONS.SET_ERROR:
+      const newErrors = { ...state.errors };
+      if (action.payload.message) {
+        newErrors[action.payload.field] = action.payload.message;
+      } else {
+        delete newErrors[action.payload.field];
+      }
       return {
         ...state,
-        errors: {
-          ...state.errors,
-          [action.payload.field]: action.payload.message,
-        },
+        errors: newErrors,
       };
 
     case ACTIONS.CLEAR_ERROR:
+      const filteredErrors = { ...state.errors };
+      delete filteredErrors[action.payload];
       return {
         ...state,
-        errors: {
-          ...state.errors,
-          [action.payload]: undefined,
-        },
+        errors: filteredErrors,
       };
 
     case ACTIONS.RESET_WIZARD:
@@ -144,56 +145,84 @@ export const PipelineProvider = ({ children }) => {
     dispatch({ type: ACTIONS.COMPLETE_WIZARD });
   }, []);
 
-  const validateCurrentStep = useCallback(() => {
-    const { currentStep, wizardData } = state;
-    
-    switch (currentStep) {
+  // Валидация шага (не зависит от state в зависимостях)
+  const validateStep = useCallback((step, wizardData) => {
+    switch (step) {
       case 0: // Источник данных
         if (!wizardData.source) {
-          setError('source', 'Не выбран источник данных');
-          return false;
+          return { isValid: false, errorField: 'source', errorMessage: 'Не выбран источник данных' };
         }
         break;
       case 1: // Анализ
         if (!wizardData.analysis) {
-          setError('analysis', 'Анализ не выполнен');
-          return false;
+          return { isValid: false, errorField: 'analysis', errorMessage: 'Анализ не выполнен' };
         }
         break;
       case 2: // Целевая система
         if (!wizardData.target) {
-          setError('target', 'Не выбрана целевая система');
-          return false;
+          return { isValid: false, errorField: 'target', errorMessage: 'Не выбрана целевая система' };
         }
         break;
       case 3: // Конфигурация ETL
         if (!wizardData.etlConfig) {
-          setError('etlConfig', 'Не настроена конфигурация ETL');
-          return false;
+          return { isValid: false, errorField: 'etlConfig', errorMessage: 'Не настроена конфигурация ETL' };
         }
         break;
       case 4: // Визуализация
         if (!wizardData.pipeline) {
-          setError('pipeline', 'Пайплайн не сгенерирован');
-          return false;
+          return { isValid: false, errorField: 'pipeline', errorMessage: 'Пайплайн не сгенерирован' };
         }
         break;
       case 5: // Мониторинг
-        // На последнем шаге валидация не требуется
-        break;
+        return { isValid: true };
       default:
-        return false;
+        return { isValid: false };
     }
     
+    return { isValid: true };
+  }, []);
+
+  // Мемоизированное значение canProceedToNextStep
+  const canProceedToNextStep = useMemo(() => {
+    const validation = validateStep(state.currentStep, state.wizardData);
+    
+    if (!validation.isValid) {
+      // Если есть ошибка и она еще не установлена - устанавливаем
+      if (validation.errorField && !state.errors[validation.errorField]) {
+        setError(validation.errorField, validation.errorMessage);
+      }
+      return false;
+    }
+    
+    // Если валидация прошла успешно - очищаем ошибки для текущего шага
+    const currentStepErrors = {
+      0: ['source'],
+      1: ['analysis'],
+      2: ['target'],
+      3: ['etlConfig'],
+      4: ['pipeline'],
+      5: []
+    };
+    
+    const fieldsToClear = currentStepErrors[state.currentStep] || [];
+    fieldsToClear.forEach(field => {
+      if (state.errors[field]) {
+        clearError(field);
+      }
+    });
+    
     return true;
-  }, [state, setError]);
+  }, [state.currentStep, state.wizardData, state.errors, validateStep, setError, clearError]);
 
-  const canProceedToNextStep = useCallback(() => {
-    return validateCurrentStep();
-  }, [validateCurrentStep]);
-
-  const value = {
-    ...state,
+  // Мемоизированное значение контекста
+  const contextValue = useMemo(() => ({
+    // State
+    currentStep: state.currentStep,
+    wizardData: state.wizardData,
+    isCompleted: state.isCompleted,
+    errors: state.errors,
+    
+    // Actions
     setStep,
     nextStep,
     prevStep,
@@ -203,12 +232,32 @@ export const PipelineProvider = ({ children }) => {
     clearError,
     resetWizard,
     completeWizard,
-    validateCurrentStep,
+    
+    // Validation
     canProceedToNextStep,
-  };
+    
+    // Helper functions
+    validateStep: (step, data) => validateStep(step, data),
+  }), [
+    state.currentStep,
+    state.wizardData,
+    state.isCompleted,
+    state.errors,
+    setStep,
+    nextStep,
+    prevStep,
+    setWizardData,
+    updateWizardData,
+    setError,
+    clearError,
+    resetWizard,
+    completeWizard,
+    canProceedToNextStep,
+    validateStep
+  ]);
 
   return (
-    <PipelineContext.Provider value={value}>
+    <PipelineContext.Provider value={contextValue}>
       {children}
     </PipelineContext.Provider>
   );
@@ -222,3 +271,5 @@ export const usePipelineContext = () => {
   }
   return context;
 };
+
+export default PipelineContext;
