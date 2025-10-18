@@ -14,8 +14,7 @@ function App() {
     const id = Date.now();
     const notification = { id, message, type };
     setNotifications(prev => [...prev, notification]);
-    
-    // Автоматически удаляем уведомление через 5 секунд
+
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
