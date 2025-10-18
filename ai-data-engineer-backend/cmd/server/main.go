@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -132,6 +133,18 @@ func initializeServices(cfg *config.Config, logger logger.Logger, repos *Reposit
 	// Создаем LLM клиент
 	llmClient := service.NewLLMClient(cfg.LLM.BaseURL, cfg.LLM.APIKey, logger)
 
+	// Создаем MinIO клиент
+	minioClient, err := service.NewMinIOClient(
+		cfg.Storage.Endpoint,
+		cfg.Storage.AccessKey,
+		cfg.Storage.SecretKey,
+		cfg.Storage.UseSSL,
+		logger,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
+	}
+
 	// Создаем файловый процессор
 	fileProcessor := service.NewFileProcessor(logger)
 
@@ -139,7 +152,7 @@ func initializeServices(cfg *config.Config, logger logger.Logger, repos *Reposit
 	dataAnalyzer := service.NewDataAnalyzer(logger)
 
 	// Создаем сервисы с зависимостями
-	fileService := service.NewFileService(fileProcessor, dataAnalyzer, llmClient, logger)
+	fileService := service.NewFileService(fileProcessor, dataAnalyzer, llmClient, minioClient, logger)
 
 	return &Services{
 		FileService:     fileService,

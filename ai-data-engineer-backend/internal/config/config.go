@@ -195,4 +195,3 @@ func (c *Config) GetClickHouseDSN() string {
 		c.Database.ClickHouse.DBName,
 	)
 }
-
