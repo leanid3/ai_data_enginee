@@ -31,23 +31,6 @@ type DataProfile struct {
 	CreatedAt        time.Time   `json:"created_at"`
 }
 
-// AnalysisResult результат анализа
-type AnalysisResult struct {
-	AnalysisID            string                `json:"analysis_id"`
-	FileID                string                `json:"file_id"`
-	UserID                string                `json:"user_id"`
-	DataProfile           DataProfile           `json:"data_profile"`
-	Recommendations       []string              `json:"recommendations"`
-	StorageRecommendation StorageRecommendation `json:"storage_recommendation"`
-	TableSchema           TableSchema           `json:"table_schema"`
-	DDLMetadata           DDLMetadata           `json:"ddl_metadata"`
-	LLMAnalysis           string                `json:"llm_analysis"`
-	Status                AnalysisStatus        `json:"status"`
-	CreatedAt             time.Time             `json:"created_at"`
-	CompletedAt           *time.Time            `json:"completed_at,omitempty"`
-	Error                 string                `json:"error,omitempty"`
-}
-
 // AnalysisStatus статус анализа
 type AnalysisStatus string
 
@@ -129,3 +112,14 @@ const (
 	FileStatusError      FileStatus = "error"
 	FileStatusDeleted    FileStatus = "deleted"
 )
+
+// AnalysisResult результат анализа файла
+type AnalysisResult struct {
+	ID          string         `json:"id" gorm:"primaryKey"`
+	UserID      string         `json:"user_id" gorm:"index"`
+	FileID      string         `json:"file_id" gorm:"index"`
+	Status      AnalysisStatus `json:"status"`
+	Result      string         `json:"result"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}

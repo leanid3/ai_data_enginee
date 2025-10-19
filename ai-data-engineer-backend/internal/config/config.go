@@ -56,11 +56,12 @@ type ClickHouseConfig struct {
 
 // LLMConfig конфигурация LLM сервиса
 type LLMConfig struct {
-	BaseURL    string        `mapstructure:"base_url"`
-	APIKey     string        `mapstructure:"api_key"`
-	Model      string        `mapstructure:"model"`
-	Timeout    time.Duration `mapstructure:"timeout"`
-	MaxRetries int           `mapstructure:"max_retries"`
+	BaseURL    string            `mapstructure:"base_url"`
+	APIKey     string            `mapstructure:"api_key"`
+	Model      string            `mapstructure:"model"`
+	Timeout    time.Duration     `mapstructure:"timeout"`
+	MaxRetries int               `mapstructure:"max_retries"`
+	Endpoints  map[string]string `mapstructure:"endpoints"`
 }
 
 // StorageConfig конфигурация хранилища

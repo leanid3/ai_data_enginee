@@ -15,11 +15,10 @@ type FileUploadResponse struct {
 
 // AnalysisResponse ответ на анализ файла
 type AnalysisResponse struct {
-	AnalysisID string                 `json:"analysis_id"`
-	Status     string                 `json:"status"`
-	Message    string                 `json:"message"`
-	Result     map[string]interface{} `json:"result,omitempty"`
-	CreatedAt  time.Time              `json:"created_at"`
+	Status    string                 `json:"status"`
+	Message   string                 `json:"message"`
+	Result    map[string]interface{} `json:"result"`
+	CreatedAt time.Time              `json:"created_at"`
 }
 
 // PipelineResponse ответ на создание пайплайна
@@ -69,29 +68,13 @@ type ErrorResponse struct {
 
 // LLMRequest запрос к LLM
 type LLMRequest struct {
-	UserQuery     string                 `json:"user_query"`
-	SourceConfig  map[string]interface{} `json:"source_config,omitempty"`
-	TargetConfig  map[string]interface{} `json:"target_config,omitempty"`
-	OperationType string                 `json:"operation_type"`
-	Prompt        string                 `json:"prompt,omitempty"`
-	Model         string                 `json:"model,omitempty"`
-	MaxTokens     int                    `json:"max_tokens,omitempty"`
-	Temperature   float64                `json:"temperature,omitempty"`
-	Context       map[string]interface{} `json:"context,omitempty"`
-	DataProfile   *DataProfile           `json:"data_profile,omitempty"`
+	UserID string `json:"user_id"`
+	// TODO: add file name
 }
 
 // LLMResponse ответ от LLM
 type LLMResponse struct {
-	Content    string                 `json:"content"`
-	Model      string                 `json:"model"`
-	Tokens     int                    `json:"tokens,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
-	PipelineID string                 `json:"pipeline_id,omitempty"`
-	Message    string                 `json:"message,omitempty"`
-	Status     string                 `json:"status,omitempty"`
-	UserReport string                 `json:"user_report,omitempty"`
-	Error      *string                `json:"error,omitempty"`
+	Content interface{} `json:"content"`
 }
 
 // GenerateDDLRequest запрос на генерацию DDL

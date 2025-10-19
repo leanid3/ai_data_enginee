@@ -16,6 +16,41 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func TestUploadFile(t *testing.T) {
+	// Проверяем, что MinIO сервер доступен
+	if !isMinIOAvailable() {
+		t.Skip("MinIO сервер недоступен. Запустите: docker-compose up minio")
+	}
+
+	buf, writer := prepareFile(t)
+	// Выполняем запрос
+	executeUploadFileRequest(t, buf, writer)
+}
+
+// prepareFile подготовка файла для запроса
+func prepareFile(t *testing.T) (*bytes.Buffer, *multipart.Writer) {
+
+	// Создаем буфер для multipart данных
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Создаем файл в форме
+	part, err := writer.CreateFormFile("file", "test_data.csv")
+	if err != nil {
+		t.Fatalf("Не удалось создать форму файла %v", err)
+	}
+
+	fileContent := []byte("name,age\nJohn,30\nJane,25")
+	_, err = part.Write(fileContent)
+	if err != nil {
+		t.Fatalf("Не удалось записать содержимое файла %v", err)
+	}
+
+	writer.Close()
+
+	return &buf, writer
+}
+
 // createTestServices создает реальные сервисы для тестирования
 func createTestServices(t *testing.T) (*service.FileService, logger.Logger) {
 	// Создаем логгер
@@ -49,14 +84,26 @@ func isMinIOAvailable() bool {
 	return true
 }
 
-func executeRequest(t *testing.T, router *gin.Engine, buf *bytes.Buffer, writer *multipart.Writer) {
-	// Создаем новый HTTP   
+// выполнение запроса на загрузку файла
+func executeUploadFileRequest(t *testing.T, buf *bytes.Buffer, writer *multipart.Writer) {
+	// Создаем реальные сервисы для тестирования
+	fileService, testLogger := createTestServices(t)
+
+	// Создаем Gin router
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	fileHandler := handlers.NewFileHandler(fileService, testLogger)
+	router.POST("/api/v1/files/upload", fileHandler.UploadFile)
+
+	// Создаем новый HTTP запрос
 	req := httptest.NewRequest("POST", "/api/v1/files/upload", bytes.NewReader(buf.Bytes()))
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	
-    rr := &httptest.ResponseRecorder{}
-	
-    router.ServeHTTP(rr, req)
+
+	// Создаем новый HTTP recorder
+	rr := httptest.NewRecorder()
+
+	// Выполняем запрос
+	router.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Ожидался статус %d, получили %d", http.StatusOK, status)
 		return
@@ -79,30 +126,5 @@ func executeRequest(t *testing.T, router *gin.Engine, buf *bytes.Buffer, writer 
 		t.Errorf("Ответ не является JSON: %s", responseBody)
 		return
 	}
-
-}
-func TestUploadFile(t *testing.T) {
-	// Проверяем, что MinIO сервер доступен
-	if !isMinIOAvailable() {
-		t.Skip("MinIO сервер недоступен. Запустите: docker-compose up minio")
-	}
-
-	// Создаем буфер для multipart данных
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	// Создаем файл в форме
-	part, err := writer.CreateFormFile("file", "test_data.csv")
-	if err != nil {
-		t.Fatalf("Не удалось создать форму файла %v", err)
-	}
-
-	fileContent := []byte("name,age\nJohn,30\nJane,25")
-	_, err = part.Write(fileContent)
-	if err != nil {
-		t.Fatalf("Не удалось записать содержимое файла %v", err)
-	}
-
-	writer.Close()
 
 }
