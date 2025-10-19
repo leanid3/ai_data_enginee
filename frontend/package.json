@@ -1,5 +1,5 @@
 {
-  "name": "hakat",
+  "name": "ai-data-engineer-backend",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -15,7 +15,6 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.3",
     "react-scripts": "5.0.1",
-    "reactflow": "^11.10.4",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -40,6 +39,14 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "msw": "^2.11.5"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
     ]
   }
 }

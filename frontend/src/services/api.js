@@ -1,100 +1,58 @@
-import config from './config';
+const API_BASE_URL = "http://localhost:8080/api/v1";
 
-class ApiService {
-  constructor() {
-    this.baseUrl = config.api.baseUrl;
-    this.userId = config.app.userId;
-  }
+export const apiService = {
+  // Загрузка файла
+  async uploadFile(file, fileType, userId = "default_user", targetDb = "postgres") {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("file_type", fileType);
+    formData.append("user_id", userId);
+    formData.append("target_db", targetDb);
 
-  // Общий метод для выполнения запросов
-  async request(endpoint, options = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
-    const defaultOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    };
+    const response = await fetch(`${API_BASE_URL}/files/upload`, {
+      method: "POST",
+      body: formData,
+    });
 
-    const response = await fetch(url, { ...defaultOptions, ...options });
-    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
-  }
-
-  // Загрузка файла
-  async uploadFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const response = await fetch(
-      `${this.baseUrl}${config.api.endpoints.files.upload}?user_id=${this.userId}`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Ошибка загрузки: ${response.status}`);
-    }
-
-    return response.json();
-  }
+    return await response.json();
+  },
 
   // Запуск анализа
-  async startAnalysis(fileId, filePath) {
-    const requestData = {
+  async startAnalysis(fileId, fileName) {
+    const requestBody = {
       file_id: fileId,
-      user_id: this.userId,
-      file_path: filePath,
+      file_name: fileName
     };
 
-    return this.request(config.api.endpoints.analysis.start, {
-      method: 'POST',
-      body: JSON.stringify(requestData),
+    const response = await fetch(`${API_BASE_URL}/analysis/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
     });
-  }
 
-  // Проверка статуса анализа
-  async getAnalysisStatus(analysisId) {
-    return this.request(`${config.api.endpoints.analysis.status}/${analysisId}`);
-  }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-  // Генерация пайплайна
-  async generatePipeline(pipelineData) {
-    return this.request(config.api.endpoints.pipeline.generate, {
-      method: 'POST',
-      body: JSON.stringify(pipelineData),
+    return await response.json();
+  },
+
+  // Получение результатов анализа
+  async getAnalysisResults(analysisId) {
+    const response = await fetch(`${API_BASE_URL}/analysis/${analysisId}/result`, {
+      method: "GET",
     });
-  }
 
-  // Получение пайплайна
-  async getPipeline(pipelineId) {
-    return this.request(`${config.api.endpoints.pipeline.get}/${pipelineId}`);
-  }
+    if (!response.ok && response.status !== 202) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-  // Выполнение пайплайна
-  async executePipeline(pipelineId) {
-    return this.request(`${config.api.endpoints.pipeline.execute}/${pipelineId}/execute`, {
-      method: 'POST',
-    });
+    return response;
   }
-
-  // Удаление пайплайна
-  async deletePipeline(pipelineId) {
-    return this.request(`${config.api.endpoints.pipeline.delete}/${pipelineId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Получение списка пайплайнов
-  async getPipelines() {
-    return this.request(config.api.endpoints.pipeline.list);
-  }
-}
-
-export default new ApiService();
+};
