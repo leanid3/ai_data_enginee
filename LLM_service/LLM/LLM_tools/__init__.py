@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from LLM_service.utils.logger import AutoClassFuncLogger, get_logger
+from utils.logger import AutoClassFuncLogger, get_logger
 
 from .base import BaseTool
 from .registry import ToolRegistry

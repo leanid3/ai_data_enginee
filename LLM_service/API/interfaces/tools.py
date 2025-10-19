@@ -1,4 +1,4 @@
-from LLM.core import Tool
+from LLM_service.LLM.core import Tool
 import asyncio
 
 async def mock_web_search(query: str) -> str:

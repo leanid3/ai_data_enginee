@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
-from LLM_service.utils.logger import AutoClassFuncLogger
+from utils.logger import AutoClassFuncLogger
 
 from pydantic import BaseModel
 
