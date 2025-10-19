@@ -1,7 +1,7 @@
 server:
   port: "8080"
-  read_timeout: "30s"
-  write_timeout: "30s"
+  read_timeout: "120s"
+  write_timeout: "120s"
   idle_timeout: "120s"
 
 database:
@@ -27,7 +27,7 @@ llm:
   base_url: "http://custom-llm:8124"
   api_key: ""
   model: "openai/gpt-oss-20b:free"
-  timeout: "30s"
+  timeout: "120s"
   max_retries: 3
   endpoints:
     analyze_file: "/api/v1/analyze-file"

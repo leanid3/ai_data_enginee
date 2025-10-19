@@ -54,10 +54,7 @@ func SetupRoutes(
 		}
 
 		// Analyze file
-		analyze := v1.Group("/analyze-file")
-		{
-			analyze.POST("?user_id=:user_id", dataAnalyzerHandler.AnalyzeFile)
-		}
+		v1.POST("/analyze-file", dataAnalyzerHandler.AnalyzeFile)
 
 		// Pipeline operations
 		pipelines := v1.Group("/pipelines")

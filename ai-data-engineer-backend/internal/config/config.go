@@ -143,7 +143,7 @@ func setDefaults() {
 	viper.SetDefault("database.clickhouse.secure", false)
 
 	// LLM
-	viper.SetDefault("llm.base_url", "http://localhost:8124/api/v1/process")
+	viper.SetDefault("llm.base_url", "http://localhost:8124")
 	viper.SetDefault("llm.api_key", "")
 	viper.SetDefault("llm.model", "openrouter/auto")
 	viper.SetDefault("llm.timeout", "30s")
