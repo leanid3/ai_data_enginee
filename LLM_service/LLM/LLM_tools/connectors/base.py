@@ -12,7 +12,7 @@ from typing import Any, AsyncIterator, Dict, Optional
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
-from utils.logger import AutoClassFuncLogger
+from LLM_service.utils.logger import AutoClassFuncLogger
 
 
 # 数据库连接配置基类
@@ -41,7 +41,7 @@ class ConnectionConfig(BaseModel):
 class QueryRequest(BaseModel):
     """Representation of a query execution request."""
 
-    operation: str = Field("test", pattern=r"^(test|query|schema|stats)$")
+    operation: str = Field("test", pattern=r"^(test|query|schema|stats|read)$")
     query: Optional[str] = None
 
     @field_validator("query")
