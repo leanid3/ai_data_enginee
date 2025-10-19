@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, List
 
-from utils.logger import AutoClassFuncLogger
+from LLM_service.utils.logger import AutoClassFuncLogger
 
 from .base import BaseTool
 
