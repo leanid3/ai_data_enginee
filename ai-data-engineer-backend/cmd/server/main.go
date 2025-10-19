@@ -10,11 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	repository "ai-data-engineer-backend/domain/repo"
 	"ai-data-engineer-backend/internal/api"
 	"ai-data-engineer-backend/internal/config"
-	"ai-data-engineer-backend/internal/repository"
 	"ai-data-engineer-backend/internal/service"
 	"ai-data-engineer-backend/pkg/logger"
+
+	"ai-data-engineer-backend/pkg/client"
 )
 
 func main() {
@@ -48,8 +50,8 @@ func main() {
 	// Настраиваем маршруты
 	router := api.SetupRoutes(
 		services.FileService,
+		services.DataAnalyzer,
 		services.PipelineService,
-		services.AnalyzeService,
 		services.HealthService,
 		logger,
 	)
@@ -106,10 +108,10 @@ type Repositories struct {
 
 // Services содержит все сервисы
 type Services struct {
-	FileService     service.FileService
-	PipelineService service.PipelineService
-	AnalyzeService  service.AnalyzeService
-	HealthService   service.HealthService
+	FileService     *service.FileService
+	DataAnalyzer    *service.DataAnalyzer
+	PipelineService *service.PipelineService
+	HealthService   *service.HealthService
 }
 
 // initializeRepositories инициализирует репозитории
@@ -131,10 +133,9 @@ func initializeServices(cfg *config.Config, logger logger.Logger, repos *Reposit
 	logger.Info("Initializing services with real implementations")
 
 	// Создаем LLM клиент
-	llmClient := service.NewLLMClient(cfg.LLM.BaseURL, cfg.LLM.APIKey, logger)
-
+	llmClient := client.NewLLMClient(cfg.LLM.BaseURL, cfg.LLM.APIKey, logger)
 	// Создаем MinIO клиент
-	minioClient, err := service.NewMinIOClient(
+	minioClient, err := client.NewMinIOClient(
 		cfg.Storage.Endpoint,
 		cfg.Storage.AccessKey,
 		cfg.Storage.SecretKey,
@@ -145,19 +146,16 @@ func initializeServices(cfg *config.Config, logger logger.Logger, repos *Reposit
 		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
 	}
 
-	// Создаем файловый процессор
-	fileProcessor := service.NewFileProcessor(logger)
-
-	// Создаем анализатор данных
-	dataAnalyzer := service.NewDataAnalyzer(logger)
+	// Создаем анализатор данных с LLM клиентом
+	dataAnalyzer := service.NewDataAnalyzer(logger, llmClient)
 
 	// Создаем сервисы с зависимостями
-	fileService := service.NewFileService(fileProcessor, dataAnalyzer, llmClient, minioClient, logger)
+	fileService := service.NewFileService(minioClient, logger)
 
 	return &Services{
 		FileService:     fileService,
+		DataAnalyzer:    dataAnalyzer,
 		PipelineService: service.NewPipelineService(logger),
-		AnalyzeService:  service.NewAnalyzeService(logger),
 		HealthService:   service.NewHealthService(logger),
 	}, nil
 }

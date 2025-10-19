@@ -1,62 +1,42 @@
 package service
 
 import (
+	"ai-data-engineer-backend/domain/models"
 	"ai-data-engineer-backend/pkg/logger"
 	"context"
-	"time"
 )
 
-// healthService реализация HealthService
-type healthService struct {
+// HealthService сервис для проверки здоровья системы
+type HealthService struct {
 	logger logger.Logger
 }
 
 // NewHealthService создает новый HealthService
-func NewHealthService(logger logger.Logger) HealthService {
-	return &healthService{
+func NewHealthService(logger logger.Logger) *HealthService {
+	return &HealthService{
 		logger: logger,
 	}
 }
 
-// CheckHealth проверяет состояние сервиса
-func (s *healthService) CheckHealth(ctx context.Context) (string, error) {
-	s.logger.Debug("Checking service health (stub implementation)")
-
-	// Заглушка - будет реализована в следующих итерациях
-	return "healthy", nil
+// CheckHealth проверяет состояние системы
+func (h *HealthService) CheckHealth(ctx context.Context) (bool, error) {
+	return true, nil
 }
 
-// CheckDatabase проверяет подключение к БД
-func (s *healthService) CheckDatabase(ctx context.Context) (string, error) {
-	s.logger.Debug("Checking database health (stub implementation)")
-
-	// Заглушка - будет реализована в следующих итерациях
-	return "healthy", nil
+// CheckDatabase проверяет состояние базы данных
+func (h *HealthService) CheckDatabase(ctx context.Context) (bool, error) {
+	// TODO: Implement database health check
+	return true, nil
 }
 
-// CheckLLM проверяет LLM сервис
-func (s *healthService) CheckLLM(ctx context.Context) (string, error) {
-	s.logger.Debug("Checking LLM health (stub implementation)")
-
-	// Заглушка - будет реализована в следующих итерациях
-	return "healthy", nil
+// CheckLLM проверяет состояние LLM сервиса
+func (h *HealthService) CheckLLM(ctx context.Context) (bool, error) {
+	// TODO: Implement LLM health check
+	return true, nil
 }
 
-// TestDatabaseConnection тестирует подключение к БД
-func (s *healthService) TestDatabaseConnection(ctx context.Context, req *DatabaseTestRequest) (*DatabaseTestResponse, error) {
-	s.logger.WithField("type", req.Type).Info("Testing database connection (stub implementation)")
-
-	// Заглушка - будет реализована в следующих итерациях
-	return &DatabaseTestResponse{
-		Status:    "success",
-		Message:   "Database connection test successful (stub)",
-		Connected: true,
-		TestedAt:  time.Now().Format(time.RFC3339),
-		Details: map[string]interface{}{
-			"type": req.Type,
-			"host": req.Host,
-			"port": req.Port,
-		},
-	}, nil
+// TestDatabaseConnection тестирует подключение к базе данных
+func (h *HealthService) TestDatabaseConnection(ctx context.Context, req *models.DatabaseTestRequest) (bool, error) {
+	// TODO: Implement database connection test
+	return true, nil
 }
-

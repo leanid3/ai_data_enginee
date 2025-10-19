@@ -74,10 +74,10 @@ services:
       timeout: 5s
       retries: 5
 
-  # Custom LLM Service
-  custom-llm:
+  # LLM Service
+  llm_service:
     build:
-      context: ./LLM
+      context: ./LLM_service
       dockerfile: Dockerfile
     container_name: aien_custom_llm
     ports:
@@ -85,9 +85,9 @@ services:
     environment:
       - PORT=8124
       - DEBUG=false
-      - OPENROUTER_API_KEY=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
+      - OPENROUTER_API_KEY=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
       - OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-      - DEFAULT_MODEL=deepseek/deepseek-chat-v3.1:free
+      - DEFAULT_MODEL=openai/gpt-oss-20b:free
       - SITE_URL=http://localhost:8124
       - SITE_NAME=AI Data Engineer
       - DB_HOST=postgres
@@ -135,8 +135,8 @@ services:
       - CLICKHOUSE_USER=default
       - CLICKHOUSE_PASSWORD=
       - CLICKHOUSE_DB=aien_db
-      - LLM_BASE_URL=http://custom-llm:8124/api/v1/process
-      - LLM_API_KEY=
+      - LLM_BASE_URL=http://llm_service:8124/api/v1/process
+      - LLM_API_KEY=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
       - LLM_MODEL=openrouter/auto
       - STORAGE_TYPE=minio
       - STORAGE_ENDPOINT=minio:9000
@@ -154,7 +154,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      custom-llm:
+      llm_service:
         condition: service_healthy
     networks:
       - aien_network

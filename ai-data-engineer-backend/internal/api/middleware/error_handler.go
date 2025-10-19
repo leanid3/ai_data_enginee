@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"ai-data-engineer-backend/internal/models"
+	"ai-data-engineer-backend/domain/models"
 	"ai-data-engineer-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -103,4 +103,3 @@ func MethodNotAllowedHandler() gin.HandlerFunc {
 		c.JSON(http.StatusMethodNotAllowed, response)
 	}
 }
-

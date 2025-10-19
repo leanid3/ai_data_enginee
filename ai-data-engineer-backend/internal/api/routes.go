@@ -11,10 +11,10 @@ import (
 
 // SetupRoutes настраивает маршруты API
 func SetupRoutes(
-	fileService service.FileService,
-	pipelineService service.PipelineService,
-	analyzeService service.AnalyzeService,
-	healthService service.HealthService,
+	fileService handlers.FileService,
+	dataAnalyzer *service.DataAnalyzer,
+	pipelineService *service.PipelineService,
+	healthService handlers.HealthService,
 	log logger.Logger,
 ) *gin.Engine {
 	// Создаем Gin router
@@ -35,7 +35,6 @@ func SetupRoutes(
 	// Создаем handlers
 	fileHandler := handlers.NewFileHandler(fileService, log)
 	pipelineHandler := handlers.NewPipelineHandler(pipelineService, log)
-	analyzeHandler := handlers.NewAnalyzeHandler(analyzeService, log)
 	healthHandler := handlers.NewHealthHandler(healthService, log)
 
 	// API v1 группа
@@ -54,15 +53,6 @@ func SetupRoutes(
 			files.GET("", fileHandler.ListFiles)
 		}
 
-		// Analysis operations
-		analysis := v1.Group("/analysis")
-		{
-			analysis.POST("/start", analyzeHandler.StartAnalysis)
-			analysis.GET("/:id/status", analyzeHandler.GetAnalysisStatus)
-			analysis.GET("/:id/result", analyzeHandler.GetAnalysisResult)
-			analysis.GET("", analyzeHandler.ListAnalyses)
-		}
-
 		// Pipeline operations
 		pipelines := v1.Group("/pipelines")
 		{
@@ -76,4 +66,3 @@ func SetupRoutes(
 
 	return r
 }
-

@@ -1,35 +1,44 @@
 package handlers
 
 import (
+	"context"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
 
-	"ai-data-engineer-backend/internal/models"
-	"ai-data-engineer-backend/internal/service"
+	"ai-data-engineer-backend/domain/models"
 	"ai-data-engineer-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
 
-// FileHandler обработчик для работы с файлами
+// ! FileService интерфейс для работы с файлами
+type FileService interface {
+	UploadFile(ctx context.Context, userID, filename string, file io.Reader) (string, error)
+	GetFileInfo(ctx context.Context, fileID string) (interface{}, error)
+	DeleteFile(ctx context.Context, fileID string) error
+	ListFiles(ctx context.Context, userID string, limit, offset int) ([]interface{}, error)
+}
+
+// ! FileHandler обработчик для работы с файлами
 type FileHandler struct {
-	fileService service.FileService
+	fileService FileService
 	logger      logger.Logger
 }
 
-// NewFileHandler создает новый FileHandler
-func NewFileHandler(fileService service.FileService, logger logger.Logger) *FileHandler {
+// ! NewFileHandler создает новый FileHandler
+func NewFileHandler(fileService FileService, logger logger.Logger) *FileHandler {
 	return &FileHandler{
 		fileService: fileService,
 		logger:      logger,
 	}
 }
 
-// UploadFile загружает и анализирует файл
+// * UploadFile загружает и анализирует файл
 func (h *FileHandler) UploadFile(c *gin.Context) {
 	requestLogger := logger.GetLoggerFromContext(c.Request.Context())
-	requestLogger.Info("Starting file upload")
+	requestLogger.Info("Starting: Handler.FileHandler.UploadFile")
 
 	// Получаем файл из multipart form
 	file, header, err := c.Request.FormFile("file")
@@ -44,47 +53,52 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// Получаем дополнительные параметры из form
+	// Получаем тип файла
 	fileType := c.PostForm("file_type")
-	if fileType == "" {
-		fileType = "csv" // По умолчанию
+	if fileType != "csv" && fileType != "json" && fileType != "xml" && fileType != "" {
+		requestLogger.WithField("error", "invalid_file_type").Warn("Invalid file type")
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:     "invalid_file_type",
+			Message:   "Неверный тип файла",
+			Timestamp: time.Now(),
+		})
+		return
 	}
+
+	// Получаем ID пользователя
 	userID := c.PostForm("user_id")
 	if userID == "" {
 		userID = "default_user" // По умолчанию
 	}
+
+	// Получаем целевую систему
 	targetDB := c.PostForm("target_db")
 	if targetDB == "" {
-		targetDB = "postgresql" // По умолчанию
+		targetDB = "postgres" // По умолчанию
 	}
 
-	// Анализируем файл
-	result, err := h.fileService.AnalyzeFile(c.Request.Context(), &service.AnalyzeFileRequest{
-		File:     file,
-		Filename: header.Filename,
-		UserID:   userID,
-		FileType: fileType,
-		TargetDB: targetDB,
-	})
+	// Загружаем файл
+	result, err := h.fileService.UploadFile(c.Request.Context(), userID, header.Filename, file)
 	if err != nil {
-		requestLogger.WithField("error", err.Error()).Error("Failed to analyze file")
+		requestLogger.WithField("error", err.Error()).Error("Failed to upload file")
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:     "analysis_failed",
-			Message:   "Ошибка анализа файла",
+			Error:     "upload_failed",
+			Message:   "Ошибка загрузки файла",
 			Timestamp: time.Now(),
 		})
 		return
 	}
 
 	response := models.FileUploadResponse{
-		FileID:    result.FileID,
+		FileID:    result,
 		Status:    "uploaded",
 		Message:   "Файл успешно загружен и проанализирован",
 		CreatedAt: time.Now(),
 	}
+	requestLogger.WithField("file_id", result).Info("File uploaded successfully")
 
-	requestLogger.WithField("file_id", result.FileID).Info("File uploaded successfully")
 	c.JSON(http.StatusOK, response)
+	requestLogger.Info("End: Handler.FileHandler.UploadFile")
 }
 
 // GetFileInfo получает информацию о файле
