@@ -22,10 +22,10 @@ func NewDataAnalyzer(logger logger.Logger, llmClient client.LLMClient) *DataAnal
 }
 
 // отправка запроса на анализ файла в LLM
-func (d *DataAnalyzer) AnalyzeFile(ctx context.Context, userID, filename string) (string, error) {
-	d.logger.WithField("user_id", userID).WithField("filename", filename).Info("Starting analyze file")
+func (d *DataAnalyzer) AnalyzeFile(ctx context.Context, userID string) (string, error) {
+	d.logger.WithField("user_id", userID).Info("Starting analyze file")
 
-	resp, err := d.llmClient.AnalyzeFile(ctx, userID, filename)
+	resp, err := d.llmClient.AnalyzeFile(ctx, userID)
 	if err != nil {
 		d.logger.WithField("error", err.Error()).Error("Failed to analyze file")
 		return "", err

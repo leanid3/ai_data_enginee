@@ -14,10 +14,9 @@ import (
 )
 
 type LLMClient interface {
-	ProcessRequest(ctx context.Context, req *models.LLMRequest) (*models.LLMResponse, error)
-	AnalyzeSchema(ctx context.Context, schema *models.DataSchema) (*models.AnalysisResult, error)
+	SendRequest(ctx context.Context, req *models.LLMRequest, endpoint string) (*models.LLMResponse, error)
 	GenerateDDL(ctx context.Context, req *models.GenerateDDLRequest) (*models.GenerateDDLResponse, error)
-	AnalyzeFile(ctx context.Context, userID, objectName string) (string, error)
+	AnalyzeFile(ctx context.Context, userID string) (string, error)
 }
 
 // llmClient реализация LLMClient
@@ -26,42 +25,34 @@ type llmClient struct {
 	apiKey     string
 	httpClient *http.Client
 	logger     logger.Logger
+	endpoints  map[string]string
 }
 
 // NewLLMClient создает новый LLM клиент
-func NewLLMClient(baseURL, apiKey string, logger logger.Logger) LLMClient {
+func NewLLMClient(baseURL, apiKey string, logger logger.Logger, endpoints map[string]string) LLMClient {
 	return &llmClient{
 		baseURL: baseURL,
 		apiKey:  apiKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		logger: logger,
+		logger:    logger,
+		endpoints: endpoints,
 	}
 }
 
-// ProcessRequest отправляет запрос к LLM сервису
-func (c *llmClient) ProcessRequest(ctx context.Context, req *models.LLMRequest) (*models.LLMResponse, error) {
-	c.logger.WithField("operation_type", req.OperationType).Info("Processing LLM request")
+// SendRequest отправляет запрос к LLM сервису
+func (c *llmClient) SendRequest(ctx context.Context, req *models.LLMRequest, endpoint string) (*models.LLMResponse, error) {
+	c.logger.Info("llmClient.SendRequest: Starting")
 
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Используем правильный endpoint для LLM сервиса
-	endpoint := c.baseURL + "/api/v1/process"
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	if c.apiKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
-	}
-
-	resp, err := c.httpClient.Do(httpReq)
+	url := c.baseURL + endpoint
+	c.logger.WithField("url", url).Info("llmClient.SendRequest: Sending request")
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -72,127 +63,58 @@ func (c *llmClient) ProcessRequest(ctx context.Context, req *models.LLMRequest) 
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("LLM API error: %s (status: %d)", string(body), resp.StatusCode)
-	}
-
 	var llmResp models.LLMResponse
 	if err := json.Unmarshal(body, &llmResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	if llmResp.Error != nil {
-		return nil, fmt.Errorf("LLM error: %s", *llmResp.Error)
-	}
-
-	c.logger.WithField("pipeline_id", llmResp.PipelineID).Info("LLM request processed successfully")
+	c.logger.Info("llmClient.SendRequest: Ending")
 	return &llmResp, nil
-}
-
-// AnalyzeSchema анализирует схему данных
-func (c *llmClient) AnalyzeSchema(ctx context.Context, schema *models.DataSchema) (*models.AnalysisResult, error) {
-	c.logger.Info("Analyzing data schema with LLM")
-
-	// Преобразуем схему в формат для LLM
-	fields := make([]models.DataField, len(schema.Fields))
-	for i, field := range schema.Fields {
-		fields[i] = models.DataField{
-			Name:        field.Name,
-			Type:        field.Type,
-			Nullable:    field.Nullable,
-			SampleValue: field.SampleValue,
-			Description: field.Description,
-		}
-	}
-
-	dataProfile := models.DataProfile{
-		DataType:         "csv", // По умолчанию
-		TotalRows:        1000,  // Заглушка
-		SampledRows:      100,   // Заглушка
-		Fields:           fields,
-		SampleData:       "",   // Будет заполнено из schema.Sample
-		DataQualityScore: 0.85, // Заглушка
-	}
-	_ = dataProfile // Используем переменную
-
-	req := &models.LLMRequest{
-		UserQuery: "Проанализируй структуру данных и дай рекомендации по оптимизации",
-		SourceConfig: map[string]interface{}{
-			"type": "csv",
-		},
-		TargetConfig: map[string]interface{}{
-			"type": "analysis",
-		},
-		OperationType: "data_analysis",
-	}
-
-	resp, err := c.ProcessRequest(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to analyze schema: %w", err)
-	}
-
-	// Преобразуем ответ в AnalysisResult
-	return &models.AnalysisResult{
-		AnalysisID:  resp.PipelineID,
-		Status:      models.AnalysisStatusCompleted,
-		LLMAnalysis: resp.Message,
-	}, nil
 }
 
 // GenerateDDL генерирует DDL скрипт
 func (c *llmClient) GenerateDDL(ctx context.Context, req *models.GenerateDDLRequest) (*models.GenerateDDLResponse, error) {
-	c.logger.Info("Generating DDL with LLM")
-
-	// Преобразуем запрос в формат для LLM
-	llmReq := &models.LLMRequest{
-		UserQuery: fmt.Sprintf("Создай DDL скрипт для таблицы %s на основе профиля данных", req.Target.TableName),
-		SourceConfig: map[string]interface{}{
-			"type": req.DataProfile.DataType,
-		},
-		TargetConfig: map[string]interface{}{
-			"type":       req.Target.Type,
-			"table_name": req.Target.TableName,
-		},
-		OperationType: "ddl_generation",
-	}
-
-	resp, err := c.ProcessRequest(ctx, llmReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate DDL: %w", err)
-	}
-
-	return &models.GenerateDDLResponse{
-		DDL:      resp.Message,
-		Database: req.Database,
-		Metadata: map[string]interface{}{
-			"generated_by": "LLM",
-			"status":       resp.Status,
-		},
-	}, nil
+	//TODO: send request to LLM to generate DDL
+	return nil, nil
 }
 
 // AnalyzeFile отправляет запрос на анализ файла в LLM
-func (c *llmClient) AnalyzeFile(ctx context.Context, userID, objectName string) (string, error) {
-	c.logger.WithField("user_id", userID).WithField("object_name", objectName).Info("Analyzing file with LLM")
+func (c *llmClient) AnalyzeFile(ctx context.Context, userID string) (string, error) {
+	c.logger.WithField("user_id", userID).Info("LLMClient.AnalyzeFile: Starting")
 
 	// Создаем запрос для анализа файла
 	req := &models.LLMRequest{
-		UserQuery:     fmt.Sprintf("Проанализируй файл пользователя %s: %s", userID, objectName),
-		SourceConfig:  map[string]interface{}{"type": "file_analysis"},
-		TargetConfig:  map[string]interface{}{"type": "analysis"},
-		OperationType: "file_analysis",
-		DataProfile:   nil, // Не передаем DataProfile, только userID и objectName
+		UserID: userID,
 	}
 
-	// Отправляем запрос через ProcessRequest
-	resp, err := c.ProcessRequest(ctx, req)
+	// Получаем endpoint для анализа файла
+	endpoint := c.endpoints["analyze_file"]
+	if endpoint == "" {
+		return "", fmt.Errorf("analyze_file endpoint is not configured")
+	}
+
+	// Отправляем запрос через sendRequest
+	resp, err := c.SendRequest(ctx, req, endpoint)
 	if err != nil {
+		c.logger.WithField("error", err.Error()).Error("LLMClient.AnalyzeFile: Failed to send request")
 		return "", fmt.Errorf("failed to analyze file: %w", err)
 	}
 
-	// Возвращаем результат анализа
-	if resp.UserReport != "" {
-		return resp.UserReport, nil
+	// Преобразуем ответ в строку
+	//TODO заменить на Response Model
+	var result string
+	if content, ok := resp.Content.(string); ok {
+		result = content
+	} else {
+		// Если content не строка, преобразуем в JSON
+		jsonBytes, err := json.Marshal(resp.Content)
+		if err != nil {
+			c.logger.WithField("error", err.Error()).Error("LLMClient.AnalyzeFile: Failed to marshal response content")
+			return "", fmt.Errorf("failed to marshal response content: %w", err)
+		}
+		result = string(jsonBytes)
 	}
-	return resp.Message, nil
+
+	c.logger.WithField("result", result).Info("LLMClient.AnalyzeFile: Ending")
+	return result, nil
 }

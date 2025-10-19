@@ -24,11 +24,14 @@ database:
     secure: false
 
 llm:
-  base_url: "http://custom-llm:8124/api/v1/process"
+  base_url: "http://custom-llm:8124"
   api_key: ""
-  model: "openrouter/auto"
+  model: "openai/gpt-oss-20b:free"
   timeout: "30s"
   max_retries: 3
+  endpoints:
+    analyze_file: "/api/v1/analyze-file"
+    generate_ddl: "/api/v1/generate-ddl"
 
 storage:
   type: "minio"

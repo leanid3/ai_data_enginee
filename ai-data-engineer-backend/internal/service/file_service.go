@@ -50,8 +50,9 @@ func (s *FileService) UploadFile(ctx context.Context, userID, filename string, f
 	if err != nil {
 		return "", fmt.Errorf("failed to read file: %w", err)
 	}
-
-	uploadErr := s.storageClient.UploadFile(ctx, "ai-data-engineer", objectName, strings.NewReader(string(content)), int64(len(content)), "application/octet-stream")
+	userBucket := "ai-data-engineer"
+	userfilePath := fmt.Sprintf("users/%s/files/%s", userID, objectName)
+	uploadErr := s.storageClient.UploadFile(ctx, userBucket, userfilePath, strings.NewReader(string(content)), int64(len(content)), "application/octet-stream")
 	if uploadErr != nil {
 		s.logger.WithField("error", uploadErr.Error()).Error("Failed to save file to MinIO")
 		return "", fmt.Errorf("failed to save file to MinIO: %w", uploadErr)

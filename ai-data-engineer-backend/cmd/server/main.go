@@ -133,7 +133,7 @@ func initializeServices(cfg *config.Config, logger logger.Logger, repos *Reposit
 	logger.Info("Initializing services with real implementations")
 
 	// Создаем LLM клиент
-	llmClient := client.NewLLMClient(cfg.LLM.BaseURL, cfg.LLM.APIKey, logger)
+	llmClient := client.NewLLMClient(cfg.LLM.BaseURL, cfg.LLM.APIKey, logger, cfg.LLM.Endpoints)
 	// Создаем MinIO клиент
 	minioClient, err := client.NewMinIOClient(
 		cfg.Storage.Endpoint,
