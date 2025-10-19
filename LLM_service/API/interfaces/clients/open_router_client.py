@@ -2,8 +2,8 @@ import os
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
-from LLM.interfaces import LLMClientProtocol
-from LLM.interfaces.client import ChatResponse
+from LLM_service.LLM.interfaces import LLMClientProtocol
+from LLM_service.LLM.interfaces.client import ChatResponse
 
 load_dotenv()
 

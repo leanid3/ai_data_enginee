@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 import asyncpg
 from pydantic import Field
 
-from utils.logger import AutoClassFuncLogger
+from LLM_service.utils.logger import AutoClassFuncLogger
 
 from ..base import BaseTool, ToolOutput
 from ..utils.env import apply_postgres_env_defaults

@@ -9,18 +9,17 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Dict, List, Optional
 from urllib.parse import quote
-from urllib3 import PoolManager, Timeout
 
 from minio import Minio
 from minio.error import S3Error
 from pydantic import Field, field_validator
 
-from utils.logger import AutoClassFuncLogger
-from LLM.LLM_tools.connectors.base import (
+from LLM_service.LLM.LLM_tools.connectors.base import (
     BaseConnector,
     ConnectionConfig,
     ConnectionResult,
     QueryRequest,
+    AutoClassFuncLogger,
 )
 
 
@@ -60,13 +59,6 @@ class MinIOConnector(BaseConnector):
         if not isinstance(config, MinIOConnectionConfig):
             config = MinIOConnectionConfig(**config.model_dump())
 
-        # Настройка HTTP-клиента с таймаутами
-        timeout = Timeout(connect=config.timeout, read=config.timeout)  # config.timeout из вашего ConnectionConfig
-        http_client = PoolManager(
-            timeout=timeout,
-            retries=False,  # или настройте retries по желанию
-        )
-
         loop = asyncio.get_event_loop()
         client = await loop.run_in_executor(
             None,
@@ -76,7 +68,6 @@ class MinIOConnector(BaseConnector):
                 secret_key=config.password,
                 secure=config.secure,
                 region=config.region,
-                http_client=http_client,  # ← передаём клиент с таймаутами
             ),
         )
 
@@ -87,9 +78,6 @@ class MinIOConnector(BaseConnector):
         except S3Error as e:
             self._logger.error(f"Bucket check failed: {e}")
             raise
-        except Exception as e:
-            self._logger.error(f"MinIO connection failed: {e}")
-            raise RuntimeError(f"MinIO connection error: {e}")
 
         self._last_config = config
         return client

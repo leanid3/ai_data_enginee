@@ -15,7 +15,7 @@ from typing import Any, Dict, Generic, Optional, Type, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from utils.logger import AutoClassFuncLogger, get_logger
+from LLM_service.utils.logger import AutoClassFuncLogger, get_logger
 
 
 class ToolInput(BaseModel):
