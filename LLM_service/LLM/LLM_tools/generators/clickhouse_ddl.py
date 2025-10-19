@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from LLM_service.utils.logger import AutoClassFuncLogger
+from utils.logger import AutoClassFuncLogger
 
 from ..base import BaseTool, ToolInput, ToolOutput
 from ..utils.type_mapping import pandas_dtype_to_clickhouse

@@ -4,18 +4,18 @@ from fastapi.responses import JSONResponse
 from pathlib import Path
 import aiofiles
 
-from LLM_service.LLM.LLM_tools.connectors.minio_conn import MinIOConnector, MinIOConnectionConfig, QueryRequest
-from LLM_service.utils.logger import AutoClassFuncLogger
-from LLM_service.API.schemas import LLMRequest, LLMResponse
-from LLM_service.API.core import DataProcessor
-from LLM_service.API.core import DataEngineeringOrchestrator
+from LLM.LLM_tools.connectors.minio_conn import MinIOConnector, MinIOConnectionConfig, QueryRequest
+from utils.logger import AutoClassFuncLogger
+from API.schemas import LLMRequest, LLMResponse
+from API.core import DataProcessor
+from API.core import DataEngineeringOrchestrator
 from API.interfaces import OpenRouterClient
 from API.schemas import SourceConfig
 from API.schemas import TargetConfig
 from LLM.core import LLMChainManager
 from LLM.core import AgentRole
 
-from LLM_service.utils.logger import get_logger
+from utils.logger import get_logger
 
 __VERSION__ = "0.1"
 

@@ -12,7 +12,7 @@ from typing import Any, AsyncIterator, Dict, Optional
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
-from LLM_service.utils.logger import AutoClassFuncLogger
+from utils.logger import AutoClassFuncLogger
 
 
 # 数据库连接配置基类

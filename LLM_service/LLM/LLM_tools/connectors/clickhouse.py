@@ -11,7 +11,7 @@ from clickhouse_connect.driver import Client as CHClient
 from clickhouse_connect.driver.exceptions import ClickHouseError
 from pydantic import Field
 
-from LLM_service.utils.logger import AutoClassFuncLogger
+from utils.logger import AutoClassFuncLogger
 
 from ..base import BaseTool, ToolOutput
 from ..utils.env import apply_clickhouse_env_defaults
