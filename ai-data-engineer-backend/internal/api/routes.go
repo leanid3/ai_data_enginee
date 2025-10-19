@@ -36,7 +36,7 @@ func SetupRoutes(
 	fileHandler := handlers.NewFileHandler(fileService, log)
 	pipelineHandler := handlers.NewPipelineHandler(pipelineService, log)
 	healthHandler := handlers.NewHealthHandler(healthService, log)
-
+	dataAnalyzerHandler := handlers.NewAnalyzeHandler(dataAnalyzer, log)
 	// API v1 группа
 	v1 := r.Group("/api/v1")
 	{
@@ -51,6 +51,12 @@ func SetupRoutes(
 			files.GET("/:id", fileHandler.GetFileInfo)
 			files.DELETE("/:id", fileHandler.DeleteFile)
 			files.GET("", fileHandler.ListFiles)
+		}
+
+		// Analyze file
+		analyze := v1.Group("/analyze-file")
+		{
+			analyze.POST("?user_id=:user_id", dataAnalyzerHandler.AnalyzeFile)
 		}
 
 		// Pipeline operations

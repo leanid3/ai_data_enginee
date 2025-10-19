@@ -112,14 +112,3 @@ const (
 	FileStatusError      FileStatus = "error"
 	FileStatusDeleted    FileStatus = "deleted"
 )
-
-// AnalysisResult результат анализа файла
-type AnalysisResult struct {
-	ID          string         `json:"id" gorm:"primaryKey"`
-	UserID      string         `json:"user_id" gorm:"index"`
-	FileID      string         `json:"file_id" gorm:"index"`
-	Status      AnalysisStatus `json:"status"`
-	Result      string         `json:"result"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-}
