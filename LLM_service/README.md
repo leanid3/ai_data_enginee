@@ -103,12 +103,12 @@ python test_agents.py
 - **REPORT_GENERATOR** — создание отчетов
 
 
-
 Результаты сохраняются в `test_results.json`.
 
 ## Полезные команды
 - Запуск  приложения: `python -m uvicorn main:app --host 0.0.0.0 --port 8124 --reload`
 - Тестирование агентов: `python test_agents.py`
+
 
 
 
